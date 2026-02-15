@@ -36,6 +36,7 @@ composer install
 
 # Install paket JavaScript (React/Mantine)
 npm install
+bash```
 
 ### 3. Setup Environment (.env)
 Duplikat file contoh konfigurasi:
@@ -61,43 +62,3 @@ npm run dev
 
 
 Buka browser dan akses: http://localhost:8000
-
-
-3. Konfigurasi Environment (.env)
-Duplikat file konfigurasi contoh menjadi file .env aktif.
-
-Bash
-cp .env.example .env
-Buka file .env tersebut menggunakan Text Editor, lalu cari bagian Database dan sesuaikan:
-
-Ini, TOML
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=akujualin  <-- Pastikan buat database kosong dengan nama ini di MySQL
-DB_USERNAME=root
-DB_PASSWORD=           <-- Kosongkan jika pakai XAMPP default, atau isi sesuai settinganmu
-4. Generate Key & Database Seeding
-Jalankan perintah berikut untuk mengisi APP_KEY dan mengisi database dengan data awal (User Dummy).
-
-Bash
-# Generate Key Enkripsi
-php artisan key:generate
-
-# Migrasi Tabel & Isi Data Dummy (PENTING: Gunakan --seed)
-php artisan migrate:fresh --seed
-Catatan: Perintah --seed akan otomatis membuat akun Admin, Staff, dan Mahasiswa agar bisa langsung dicoba.
-
-🏃‍♂️ Cara Menjalankan Aplikasi
-Karena menggunakan Inertia.js (Vite), Anda perlu menjalankan dua terminal secara bersamaan agar aplikasi berjalan normal.
-
-Terminal 1 (Menjalankan Server Laravel):
-
-Bash
-php artisan serve
-Terminal 2 (Menjalankan Compile Asset React):
-
-Bash
-npm run dev
-Setelah keduanya berjalan, buka browser dan akses:
-👉 http://localhost:8000
