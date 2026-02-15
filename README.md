@@ -30,13 +30,11 @@ Masuk ke folder project melalui terminal/command prompt.
 ### 2. Install Dependencies
 Install library backend dan frontend:
 
-```bash
 # Install paket PHP (Laravel)
 composer install
 
 # Install paket JavaScript (React/Mantine)
 npm install
-bash```
 
 ### 3. Setup Environment (.env)
 Duplikat file contoh konfigurasi:
