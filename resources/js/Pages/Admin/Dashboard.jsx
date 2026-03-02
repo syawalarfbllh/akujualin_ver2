@@ -1,122 +1,70 @@
-import { Head, usePage } from "@inertiajs/react";
-import {
-    Container,
-    Card,
-    Group,
-    Text as MantineText,
-    ThemeIcon,
-    SimpleGrid,
-} from "@mantine/core";
-import {
-    IconUsers,
-    IconBuildingStore,
-    IconChartBar,
-    IconServer,
-} from "@tabler/icons-react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head } from "@inertiajs/react";
+import {
+    Stack,
+    SimpleGrid,
+    Paper,
+    Group,
+    ThemeIcon,
+    Text,
+    Title,
+} from "@mantine/core";
+import { IconBuildingStore, IconUsers, IconCash } from "@tabler/icons-react";
+import DashboardChart from "@/Components/DashboardChart";
 
-export default function AdminDashboard() {
-    // --- SAFE DATA FETCHING ---
-    const { auth } = usePage().props;
-
-    // Gunakan Optional Chaining (?.)
-    // Jika auth undefined, user akan jadi undefined (tidak error)
-    const user = auth?.user;
-
-    // Jika data user belum ada, tampilkan Loading atau return null
-    if (!user) {
-        return (
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100vh",
-                }}
-            >
-                <MantineText>Memuat Data User...</MantineText>
-            </div>
-        );
-    }
-
-    const stats = [
-        { title: "Total User", value: "1,234", icon: IconUsers, color: "blue" },
-        {
-            title: "Total UMKM",
-            value: "56",
-            icon: IconBuildingStore,
-            color: "orange",
-        },
-        {
-            title: "Total Transaksi",
-            value: "Rp 450M",
-            icon: IconChartBar,
-            color: "green",
-        },
-        {
-            title: "Server Status",
-            value: "99.9%",
-            icon: IconServer,
-            color: "grape",
-        },
-    ];
-
+export default function AdminDashboard({ auth, stats, chart_data, filters }) {
     return (
-        <AuthenticatedLayout
-            user={user}
-            header={
-                <MantineText size="xl" fw={700}>
-                    Admin Overview
-                </MantineText>
-            }
-        >
+        <AuthenticatedLayout user={auth.user}>
             <Head title="Admin Dashboard" />
-
-            <Container size="xl" py="lg">
-                <SimpleGrid
-                    cols={{ base: 1, sm: 2, lg: 4 }}
-                    spacing="lg"
-                    mb="xl"
-                >
-                    {stats.map((stat) => (
-                        <Card
-                            key={stat.title}
-                            shadow="sm"
-                            padding="lg"
-                            radius="md"
-                            withBorder
-                        >
-                            <Group justify="space-between">
-                                <div>
-                                    <MantineText
-                                        c="dimmed"
-                                        size="xs"
-                                        tt="uppercase"
-                                        fw={700}
-                                    >
-                                        {stat.title}
-                                    </MantineText>
-                                    <MantineText fw={700} size="xl" mt="xs">
-                                        {stat.value}
-                                    </MantineText>
-                                </div>
-                                <ThemeIcon
-                                    color={stat.color}
-                                    variant="light"
-                                    size="xl"
-                                    radius="md"
-                                >
-                                    <stat.icon size={24} />
-                                </ThemeIcon>
-                            </Group>
-                        </Card>
-                    ))}
+            <Stack gap="xl">
+                <Title order={2}>Sistem Overview</Title>
+                <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                    <StatCard
+                        title="TOTAL UMKM"
+                        value={stats.total_umkm}
+                        icon={IconBuildingStore}
+                        color="blue"
+                    />
+                    <StatCard
+                        title="MAHASISWA"
+                        value={stats.total_mahasiswa}
+                        icon={IconUsers}
+                        color="orange"
+                    />
+                    <StatCard
+                        title="OMZET KOMISI"
+                        value={`Rp ${stats.total_transaksi.toLocaleString("id-ID")}`}
+                        icon={IconCash}
+                        color="green"
+                    />
                 </SimpleGrid>
-
-                <MantineText c="dimmed" align="center">
-                    Selamat datang, {user.name} ({user.email})
-                </MantineText>
-            </Container>
+                <DashboardChart
+                    title="Performa Penjualan Global"
+                    data={chart_data}
+                    filters={filters}
+                    color="indigo"
+                />
+            </Stack>
         </AuthenticatedLayout>
+    );
+}
+
+function StatCard({ title, value, icon: Icon, color }) {
+    return (
+        <Paper withBorder p="md" radius="md">
+            <Group>
+                <ThemeIcon size="xl" color={color} variant="light">
+                    <Icon />
+                </ThemeIcon>
+                <Stack gap={0}>
+                    <Text size="xs" c="dimmed" fw={700}>
+                        {title}
+                    </Text>
+                    <Text fw={700} size="xl">
+                        {value}
+                    </Text>
+                </Stack>
+            </Group>
+        </Paper>
     );
 }

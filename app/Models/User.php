@@ -45,4 +45,8 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    public function commissions()
+    {
+        return $this->hasMany(Commission::class);
+    }
 }

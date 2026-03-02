@@ -1,202 +1,190 @@
 import { useState } from "react";
+import { Link, usePage } from "@inertiajs/react";
 import {
-    AppShell,
-    Burger,
-    Group,
+    Box,
+    NavLink,
+    Stack,
     Text,
-    Avatar,
-    Menu,
-    UnstyledButton,
-    rem,
+    Group,
+    ThemeIcon,
+    Divider,
+    ScrollArea,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import {
-    IconLogout,
     IconDashboard,
-    IconSettings,
-    IconUser,
+    IconUsers,
     IconBuildingStore,
+    IconClipboardList,
+    IconShoppingBag,
+    IconHistory,
+    IconChartBar,
+    IconSettings,
 } from "@tabler/icons-react";
-import { Link, router, usePage } from "@inertiajs/react";
 
-export default function AuthenticatedLayout({ user, header, children }) {
-    const [opened, { toggle }] = useDisclosure();
+export default function AuthenticatedLayout({ user, children }) {
     const { url } = usePage();
 
-    // --- PERBAIKAN DI SINI ---
-    // Kita tambahkan properti 'isGlobal'
-    // isGlobal: false -> akan ditambah prefix (staff.dashboard)
-    // isGlobal: true  -> tidak ditambah prefix (profile.edit)
-    const menuItems = [
-        {
-            link: "dashboard",
-            label: "Dashboard",
-            icon: IconDashboard,
-            isGlobal: false, // Ini butuh prefix (staff.dashboard)
-        },
-        {
-            link: "profile.edit",
-            label: "Profile",
-            icon: IconUser,
-            isGlobal: true, // Ini route global (profile.edit)
-        },
-    ];
+    // DEFINISI MENU BERDASARKAN ROLE
+    const menuConfig = {
+        admin: [
+            {
+                label: "Dashboard",
+                icon: IconDashboard,
+                route: "admin.dashboard",
+            },
+            {
+                label: "Kelola User",
+                icon: IconUsers,
+                route: "admin.users.index",
+            },
+            {
+                label: "Monitor Produk",
+                icon: IconBuildingStore,
+                route: "admin.products.index",
+            },
+            {
+                label: "Monitor Klaim",
+                icon: IconChartBar,
+                route: "admin.claims.index",
+            },
+        ],
+        staff_umkm: [
+            {
+                label: "Dashboard",
+                icon: IconDashboard,
+                route: "staff.dashboard",
+            },
+            {
+                label: "Produk Saya",
+                icon: IconShoppingBag,
+                route: "staff.product.index",
+            },
+            {
+                label: "Validasi Klaim",
+                icon: IconClipboardList,
+                route: "staff.commission.index",
+            },
+        ],
+        mahasiswa: [
+            {
+                label: "Dashboard",
+                icon: IconDashboard,
+                route: "mahasiswa.dashboard",
+            },
+            {
+                label: "Katalog Produk",
+                icon: IconShoppingBag,
+                route: "mahasiswa.katalog",
+            },
+            {
+                label: "Riwayat Klaim",
+                icon: IconHistory,
+                route: "mahasiswa.claim.history",
+            },
+        ],
+    };
+
+    const activeMenu = menuConfig[user.role] || [];
 
     return (
-        <AppShell
-            header={{ height: 60 }}
-            navbar={{
-                width: 300,
-                breakpoint: "sm",
-                collapsed: { mobile: !opened },
+        <Box
+            style={{
+                display: "flex",
+                minHeight: "100vh",
+                backgroundColor: "#f8f9fa",
             }}
-            padding="md"
         >
-            {/* --- HEADER --- */}
-            <AppShell.Header>
-                <Group h="100%" px="md" justify="space-between">
-                    <Group>
-                        <Burger
-                            opened={opened}
-                            onClick={toggle}
-                            hiddenFrom="sm"
-                            size="sm"
-                        />
-                        <IconBuildingStore size={30} color="#4338ca" />
-                        <Text fw={700} size="lg" visibleFrom="xs">
-                            Akujualin
-                        </Text>
-                    </Group>
-
-                    {/* User Dropdown */}
-                    <Menu shadow="md" width={200}>
-                        <Menu.Target>
-                            <UnstyledButton>
-                                <Group gap={7}>
-                                    <Avatar
-                                        src={null}
-                                        alt={user.name}
-                                        radius="xl"
-                                        color="indigo"
-                                    >
-                                        {user.name.charAt(0)}
-                                    </Avatar>
-                                    <div style={{ flex: 1 }}>
-                                        <Text
-                                            size="sm"
-                                            fw={500}
-                                            visibleFrom="sm"
-                                        >
-                                            {user.name}
-                                        </Text>
-                                        <Text
-                                            c="dimmed"
-                                            size="xs"
-                                            visibleFrom="sm"
-                                        >
-                                            {user.role === "staff_umkm"
-                                                ? "Seller/UMKM"
-                                                : "Mahasiswa"}
-                                        </Text>
-                                    </div>
-                                </Group>
-                            </UnstyledButton>
-                        </Menu.Target>
-
-                        <Menu.Dropdown>
-                            <Menu.Label>Akun</Menu.Label>
-                            {/* Route Profile Dropdown (Sudah Benar) */}
-                            <Menu.Item
-                                leftSection={
-                                    <IconSettings
-                                        style={{
-                                            width: rem(14),
-                                            height: rem(14),
-                                        }}
-                                    />
-                                }
-                                component={Link}
-                                href={route("profile.edit")}
+            {/* SIDEBAR */}
+            <Box
+                w={260}
+                p="md"
+                style={{
+                    borderRight: "1px solid #e9ecef",
+                    backgroundColor: "white",
+                    position: "fixed",
+                    height: "100vh",
+                }}
+            >
+                <Stack justify="space-between" h="100%">
+                    <Box>
+                        <Group mb="xl" px="sm">
+                            <ThemeIcon
+                                size="lg"
+                                variant="gradient"
+                                gradient={{ from: "blue", to: "cyan" }}
                             >
-                                Pengaturan
-                            </Menu.Item>
-
-                            <Menu.Divider />
-
-                            <Menu.Item
-                                color="red"
-                                leftSection={
-                                    <IconLogout
-                                        style={{
-                                            width: rem(14),
-                                            height: rem(14),
-                                        }}
-                                    />
-                                }
-                                onClick={() => router.post(route("logout"))}
+                                <IconShoppingBag size={20} />
+                            </ThemeIcon>
+                            <Text
+                                fw={800}
+                                size="lg"
+                                variant="gradient"
+                                gradient={{ from: "blue", to: "cyan" }}
                             >
-                                Logout
-                            </Menu.Item>
-                        </Menu.Dropdown>
-                    </Menu>
-                </Group>
-            </AppShell.Header>
+                                AKUJUALIN
+                            </Text>
+                        </Group>
 
-            {/* --- SIDEBAR --- */}
-            <AppShell.Navbar p="md">
-                <Text size="xs" fw={500} c="dimmed" mb="sm">
-                    MENU UTAMA
-                </Text>
-                {menuItems.map((item) => {
-                    const isActive = url.includes(item.link.replace(".", "/"));
-
-                    // --- LOGIKA PENENTUAN ROUTE YANG DIPERBAIKI ---
-                    let routeName;
-
-                    if (item.isGlobal) {
-                        // Jika global, pakai nama aslinya (profile.edit)
-                        routeName = item.link;
-                    } else {
-                        // Jika tidak global, tambahkan prefix role (staff.dashboard)
-                        const prefix =
-                            user.role === "staff_umkm"
-                                ? "staff."
-                                : "mahasiswa.";
-                        routeName = prefix + item.link;
-                    }
-
-                    return (
-                        <UnstyledButton
-                            key={item.label}
-                            component={Link}
-                            href={route(routeName)} // Gunakan routeName yang sudah diproses
-                            style={{
-                                display: "block",
-                                width: "100%",
-                                padding: "10px 12px",
-                                borderRadius: "8px",
-                                color: isActive ? "#4338ca" : "black",
-                                backgroundColor: isActive
-                                    ? "#eef2ff"
-                                    : "transparent",
-                                marginBottom: "5px",
-                                textDecoration: "none",
-                            }}
+                        <Text
+                            size="xs"
+                            fw={700}
+                            c="dimmed"
+                            mb="xs"
+                            px="sm"
+                            tt="uppercase"
                         >
-                            <Group>
-                                <item.icon size={20} stroke={1.5} />
-                                <Text size="sm">{item.label}</Text>
-                            </Group>
-                        </UnstyledButton>
-                    );
-                })}
-            </AppShell.Navbar>
+                            Menu Utama
+                        </Text>
 
-            {/* --- MAIN CONTENT --- */}
-            <AppShell.Main bg="gray.0">
-                {header && <div style={{ marginBottom: "20px" }}>{header}</div>}
+                        <Stack gap={4}>
+                            {activeMenu.map((item) => (
+                                <NavLink
+                                    key={item.label}
+                                    component={Link}
+                                    href={route(item.route)}
+                                    label={item.label}
+                                    leftSection={
+                                        <item.icon size={18} stroke={1.5} />
+                                    }
+                                    active={url.startsWith(
+                                        route(item.route, {}, false),
+                                    )}
+                                    variant="light"
+                                    color="blue"
+                                    styles={{
+                                        root: { borderRadius: "8px" },
+                                    }}
+                                />
+                            ))}
+                        </Stack>
+                    </Box>
+
+                    <Box>
+                        <Divider mb="sm" />
+                        <NavLink
+                            component={Link}
+                            href={route("profile.edit")}
+                            label="Pengaturan Profil"
+                            leftSection={<IconSettings size={18} />}
+                            active={url === "/profile"}
+                            mb={4}
+                        />
+                        <NavLink
+                            component={Link}
+                            method="post"
+                            href={route("logout")}
+                            label="Keluar"
+                            leftSection={<IconHistory size={18} />}
+                            color="red"
+                        />
+                    </Box>
+                </Stack>
+            </Box>
+
+            {/* MAIN CONTENT */}
+            <Box style={{ flex: 1, marginLeft: 260 }} p="xl">
                 {children}
-            </AppShell.Main>
-        </AppShell>
+            </Box>
+        </Box>
     );
 }

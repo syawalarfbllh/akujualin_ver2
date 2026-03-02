@@ -1,105 +1,199 @@
-import { Head, usePage } from "@inertiajs/react";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head, Link } from "@inertiajs/react";
 import {
-    Container,
-    Title,
-    Text as MantineText,
-    Button,
-    Card,
+    Grid,
+    Paper,
+    Text,
     Group,
-    Badge,
-    Alert,
+    Stack,
+    Button,
     SimpleGrid,
+    Title,
+    Box,
     ThemeIcon,
 } from "@mantine/core";
 import {
-    IconBrandShopee,
+    IconBox,
     IconAlertCircle,
-    IconCheck,
-    IconPackage,
-    IconRefresh,
-    IconUsers,
-    IconWallet,
+    IconMoneybag,
+    IconArrowRight,
+    IconChartLine,
 } from "@tabler/icons-react";
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import DashboardChart from "@/Components/DashboardChart"; // Pastikan komponen ini sudah dibuat
 
-export default function StaffDashboard() {
-    // AMBIL DATA LENGKAP DARI USEPAGE
-    const { auth, flash } = usePage().props;
-    const user = auth.user;
-
-    // Safety check untuk data shop
-    const shop = auth.shop || user.shop;
-    const isConnected = shop && shop.is_linked == 1;
-
+export default function Dashboard({ auth, stats, chart_data, filters }) {
     return (
-        <AuthenticatedLayout
-            user={user}
-            header={
-                <MantineText size="xl" fw={700}>
-                    Dashboard UMKM
-                </MantineText>
-            }
-        >
-            <Head title="Staff Dashboard" />
+        <AuthenticatedLayout user={auth.user}>
+            <Head title="Dashboard Staff UMKM" />
 
-            <Container size="xl" py="lg">
-                {flash.success && (
-                    <Alert
-                        variant="light"
-                        color="green"
-                        title="Sukses"
-                        icon={<IconCheck />}
-                        mb="md"
-                    >
-                        {flash.success}
-                    </Alert>
-                )}
+            <Stack gap="xl">
+                {/* Header Section */}
+                <Group justify="space-between" align="flex-end">
+                    <Box>
+                        <Title order={2}>Ringkasan Toko</Title>
+                        <Text c="dimmed">
+                            Kelola produk dan validasi komisi mahasiswa secara
+                            real-time.
+                        </Text>
+                    </Box>
+                </Group>
 
-                <Card
-                    shadow="sm"
-                    padding="lg"
-                    radius="md"
-                    withBorder
-                    mb="xl"
-                    style={{ borderLeft: "5px solid #ee4d2d" }}
-                >
-                    <Group justify="space-between">
-                        <div>
-                            <Group>
-                                <IconBrandShopee size={32} color="#ee4d2d" />
-                                <MantineText fw={700} size="lg">
-                                    Integrasi Marketplace
-                                </MantineText>
-                            </Group>
-                            <MantineText c="dimmed" size="sm" mt="xs" maw={600}>
-                                {isConnected
-                                    ? `Terhubung: ${shop?.shop_name}`
-                                    : "Hubungkan toko Shopee Anda."}
-                            </MantineText>
-                        </div>
-
-                        {isConnected ? (
-                            <Badge size="lg" color="green" variant="light">
-                                Status: Terhubung
-                            </Badge>
-                        ) : (
-                            <Button
-                                component="a"
-                                href={
-                                    window.location.hostname === "localhost" ||
-                                    window.location.hostname === "127.0.0.1"
-                                        ? route("staff.shopee.bypass")
-                                        : route("staff.shopee.connect")
-                                }
-                                color="orange"
-                                leftSection={<IconBrandShopee size={20} />}
+                {/* Statistik Utama */}
+                <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
+                    <Paper withBorder p="md" radius="md">
+                        <Group>
+                            <ThemeIcon
+                                size="xl"
+                                radius="md"
+                                color="blue"
+                                variant="light"
                             >
-                                Hubungkan Shopee
+                                <IconBox size={24} />
+                            </ThemeIcon>
+                            <Stack gap={0}>
+                                <Text
+                                    size="xs"
+                                    c="dimmed"
+                                    fw={700}
+                                    tt="uppercase"
+                                >
+                                    Total Produk
+                                </Text>
+                                <Text size="xl" fw={700}>
+                                    {stats?.totalProducts || 0}
+                                </Text>
+                            </Stack>
+                        </Group>
+                    </Paper>
+
+                    <Paper
+                        withBorder
+                        p="md"
+                        radius="md"
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                        }}
+                    >
+                        <Group>
+                            <ThemeIcon
+                                size="xl"
+                                radius="md"
+                                color="orange"
+                                variant="light"
+                            >
+                                <IconAlertCircle size={24} />
+                            </ThemeIcon>
+                            <Stack gap={0}>
+                                <Text
+                                    size="xs"
+                                    c="dimmed"
+                                    fw={700}
+                                    tt="uppercase"
+                                >
+                                    Butuh Validasi
+                                </Text>
+                                <Text size="xl" fw={700}>
+                                    {stats?.waitingValidation || 0}
+                                </Text>
+                            </Stack>
+                        </Group>
+                        <Button
+                            fullWidth
+                            mt="md"
+                            size="compact-xs"
+                            variant="light"
+                            color="orange"
+                            component={Link}
+                            href={route("staff.commission.index")}
+                        >
+                            Cek Sekarang
+                        </Button>
+                    </Paper>
+
+                    <Paper withBorder p="md" radius="md">
+                        <Group>
+                            <ThemeIcon
+                                size="xl"
+                                radius="md"
+                                color="green"
+                                variant="light"
+                            >
+                                <IconMoneybag size={24} />
+                            </ThemeIcon>
+                            <Stack gap={0}>
+                                <Text
+                                    size="xs"
+                                    c="dimmed"
+                                    fw={700}
+                                    tt="uppercase"
+                                >
+                                    Komisi Terbayar
+                                </Text>
+                                <Text fw={700} size="xl">
+                                    Rp{" "}
+                                    {(
+                                        stats?.total_transaksi || 0
+                                    ).toLocaleString("id-ID")}
+                                </Text>
+                            </Stack>
+                        </Group>
+                    </Paper>
+                </SimpleGrid>
+
+                {/* Chart Section */}
+                <DashboardChart
+                    title="Tren Penjualan & Komisi"
+                    data={chart_data}
+                    filters={filters}
+                    color="blue"
+                />
+
+                {/* Banner Quick Action */}
+                <Paper
+                    withBorder
+                    p="xl"
+                    radius="md"
+                    bg="indigo.0"
+                    style={{ borderStyle: "dashed", borderWeight: "2px" }}
+                >
+                    <Grid align="center">
+                        <Grid.Col span={{ base: 12, md: 8 }}>
+                            <Group>
+                                <ThemeIcon color="indigo" size="lg" radius="xl">
+                                    <IconBox size={20} />
+                                </ThemeIcon>
+                                <Box>
+                                    <Title order={3} c="indigo.9">
+                                        Tambahkan Produk Baru?
+                                    </Title>
+                                    <Text c="indigo.7" size="sm">
+                                        Semakin banyak produk, semakin banyak
+                                        peluang mahasiswa membantu penjualan
+                                        Anda.
+                                    </Text>
+                                </Box>
+                            </Group>
+                        </Grid.Col>
+                        <Grid.Col
+                            span={{ base: 12, md: 4 }}
+                            ta={{ base: "left", md: "right" }}
+                        >
+                            <Button
+                                size="md"
+                                color="indigo"
+                                radius="md"
+                                leftSection={<IconArrowRight size={20} />}
+                                component={Link}
+                                href={route("staff.product.create")}
+                            >
+                                Tambah Produk
                             </Button>
-                        )}
-                    </Group>
-                </Card>
-            </Container>
+                        </Grid.Col>
+                    </Grid>
+                </Paper>
+            </Stack>
         </AuthenticatedLayout>
     );
 }

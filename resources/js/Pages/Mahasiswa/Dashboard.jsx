@@ -1,73 +1,210 @@
-import { Head, usePage } from "@inertiajs/react";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head } from "@inertiajs/react";
 import {
-    Container,
     Grid,
-    Card,
+    Paper,
+    Text,
     Group,
-    Text as MantineText,
-    Button,
-    SimpleGrid,
+    Stack,
+    RingProgress,
+    Table,
     Badge,
-    Progress,
+    Card,
+    SimpleGrid,
+    Box,
+    Title,
 } from "@mantine/core";
 import {
-    IconWallet,
-    IconClick,
-    IconShare,
-    IconSearch,
+    IconCurrencyDollar,
+    IconShoppingCart,
+    IconClock,
 } from "@tabler/icons-react";
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import DashboardChart from "@/Components/DashboardChart";
 
-export default function MahasiswaDashboard() {
-    // AMBIL DATA DARI USEPAGE
-    const { auth } = usePage().props;
-    const user = auth.user;
-
+export default function Dashboard({
+    auth,
+    stats,
+    chart_data,
+    filters,
+    recentClaims = [],
+}) {
     return (
-        <AuthenticatedLayout
-            user={user}
-            header={
-                <MantineText size="xl" fw={700}>
-                    Dashboard Affiliate
-                </MantineText>
-            }
-        >
-            <Head title="Mahasiswa Dashboard" />
+        <AuthenticatedLayout user={auth.user}>
+            <Head title="Dashboard Mahasiswa" />
 
-            <Container size="xl" py="lg">
-                <Card radius="md" bg="indigo" c="white" mb="xl" p="xl">
-                    <Group justify="space-between" align="center">
-                        <div>
-                            <MantineText size="xl" fw={700}>
-                                Halo, {user.name}!
-                            </MantineText>
-                            <MantineText size="sm" opacity={0.9}>
-                                Siap mencari uang jajan tambahan hari ini?
-                            </MantineText>
-                        </div>
-                        <Button
-                            variant="white"
-                            color="indigo"
-                            leftSection={<IconSearch size={18} />}
-                        >
-                            Cari Produk
-                        </Button>
-                    </Group>
-                </Card>
+            <Stack gap="xl">
+                <Box>
+                    <Title order={2}>Halo, {auth.user.name}! 👋</Title>
+                    <Text c="dimmed">Pantau hasil jerih payahmu di sini.</Text>
+                </Box>
 
-                {/* Statistik Placeholder */}
+                {/* Ringkasan Statistik */}
                 <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
-                    <Card withBorder padding="lg">
-                        <MantineText fw={700}>Dompet: Rp 0</MantineText>
+                    <Card withBorder padding="lg" radius="md">
+                        <Group justify="space-between">
+                            <Stack gap={0}>
+                                <Text
+                                    size="xs"
+                                    c="dimmed"
+                                    fw={700}
+                                    tt="uppercase"
+                                >
+                                    Total Pendapatan
+                                </Text>
+                                <Text size="xl" fw={700}>
+                                    Rp{" "}
+                                    {(stats?.totalEarnings || 0).toLocaleString(
+                                        "id-ID",
+                                    )}
+                                </Text>
+                            </Stack>
+                            <IconCurrencyDollar size={32} color="green" />
+                        </Group>
                     </Card>
-                    <Card withBorder padding="lg">
-                        <MantineText fw={700}>Klik: 0</MantineText>
+
+                    <Card withBorder padding="lg" radius="md">
+                        <Group justify="space-between">
+                            <Stack gap={0}>
+                                <Text
+                                    size="xs"
+                                    c="dimmed"
+                                    fw={700}
+                                    tt="uppercase"
+                                >
+                                    Menunggu Validasi
+                                </Text>
+                                <Text size="xl" fw={700}>
+                                    {stats?.pendingClaims || 0} Klaim
+                                </Text>
+                            </Stack>
+                            <IconClock size={32} color="orange" />
+                        </Group>
                     </Card>
-                    <Card withBorder padding="lg">
-                        <MantineText fw={700}>Konversi: 0</MantineText>
+
+                    <Card withBorder padding="lg" radius="md">
+                        <Group justify="space-between">
+                            <Stack gap={0}>
+                                <Text
+                                    size="xs"
+                                    c="dimmed"
+                                    fw={700}
+                                    tt="uppercase"
+                                >
+                                    Produk Terjual
+                                </Text>
+                                <Text size="xl" fw={700}>
+                                    {stats?.totalSales || 0} Unit
+                                </Text>
+                            </Stack>
+                            <IconShoppingCart size={32} color="blue" />
+                        </Group>
                     </Card>
                 </SimpleGrid>
-            </Container>
+
+                {/* Chart Section - Menampilkan Tren Pendapatan Mahasiswa */}
+                <DashboardChart
+                    title="Grafik Pendapatan Saya"
+                    data={chart_data}
+                    filters={filters}
+                    color="teal"
+                />
+
+                <Grid gutter="lg">
+                    {/* Riwayat Klaim Terakhir */}
+                    <Grid.Col span={{ base: 12, md: 8 }}>
+                        <Paper withBorder radius="md" p="md">
+                            <Title order={4} mb="md">
+                                Aktivitas Klaim Terakhir
+                            </Title>
+                            <Table.ScrollContainer minWidth={500}>
+                                <Table verticalSpacing="sm" highlightOnHover>
+                                    <Table.Thead>
+                                        <Table.Tr>
+                                            <Table.Th>Produk</Table.Th>
+                                            <Table.Th>ID Pesanan</Table.Th>
+                                            <Table.Th>Status</Table.Th>
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {recentClaims.length > 0 ? (
+                                            recentClaims.map((claim) => (
+                                                <Table.Tr key={claim.id}>
+                                                    <Table.Td>
+                                                        {claim.product.name}
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        <Text
+                                                            size="sm"
+                                                            fw={600}
+                                                        >
+                                                            {
+                                                                claim.shopee_order_id
+                                                            }
+                                                        </Text>
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        <Badge
+                                                            color={
+                                                                claim.status ===
+                                                                "approved"
+                                                                    ? "green"
+                                                                    : claim.status ===
+                                                                        "pending"
+                                                                      ? "yellow"
+                                                                      : "red"
+                                                            }
+                                                            variant="light"
+                                                        >
+                                                            {claim.status}
+                                                        </Badge>
+                                                    </Table.Td>
+                                                </Table.Tr>
+                                            ))
+                                        ) : (
+                                            <Table.Tr>
+                                                <Table.Td
+                                                    colSpan={3}
+                                                    ta="center"
+                                                    c="dimmed"
+                                                    py="xl"
+                                                >
+                                                    Belum ada aktivitas.
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        )}
+                                    </Table.Tbody>
+                                </Table>
+                            </Table.ScrollContainer>
+                        </Paper>
+                    </Grid.Col>
+
+                    {/* Progres Target */}
+                    <Grid.Col span={{ base: 12, md: 4 }}>
+                        <Paper withBorder radius="md" p="md" ta="center">
+                            <Title order={4} mb="md">
+                                Target Mingguan
+                            </Title>
+                            <Group justify="center">
+                                <RingProgress
+                                    size={180}
+                                    thickness={16}
+                                    roundCaps
+                                    sections={[{ value: 40, color: "teal" }]}
+                                    label={
+                                        <Text ta="center" fw={700} size="xl">
+                                            40%
+                                        </Text>
+                                    }
+                                />
+                            </Group>
+                            <Text size="sm" mt="md" c="dimmed">
+                                Tingkatkan lagi share link-mu untuk mencapai
+                                target pendapatan bulan ini!
+                            </Text>
+                        </Paper>
+                    </Grid.Col>
+                </Grid>
+            </Stack>
         </AuthenticatedLayout>
     );
 }

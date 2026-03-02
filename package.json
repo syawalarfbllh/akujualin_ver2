@@ -29,9 +29,16 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "@mantine/charts": "^8.3.14",
         "@mantine/core": "^8.3.14",
+        "@mantine/dates": "^8.3.14",
         "@mantine/form": "^8.3.14",
         "@mantine/hooks": "^8.3.14",
-        "@tabler/icons-react": "^3.36.1"
+        "@mantine/notifications": "^8.3.14",
+        "@tabler/icons-react": "^3.36.1",
+        "dayjs": "^1.11.19",
+        "exceljs": "^4.4.0",
+        "file-saver": "^2.0.5",
+        "recharts": "^3.7.0"
     }
 }
