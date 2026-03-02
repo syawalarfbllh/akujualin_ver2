@@ -1,19 +1,20 @@
 import "../css/app.css";
 import "@mantine/core/styles.css";
-import '@mantine/dates/styles.css';
+import "@mantine/dates/styles.css";
+import "@mantine/notifications/styles.css";
 
 import { createRoot } from "react-dom/client";
 import { createInertiaApp } from "@inertiajs/react";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { MantineProvider, createTheme } from "@mantine/core";
+import { Notifications } from "@mantine/notifications"; // 1. Import ini
 
 const appName = import.meta.env.VITE_APP_NAME || "Akujualin";
 
-// --- CONFIG THEME MODERN ---
 const theme = createTheme({
-    primaryColor: "indigo", // Warna Corporate: Indigo (Modern & Trustworthy)
-    defaultRadius: "md", // Sudut membulat (modern feel)
-    fontFamily: "Inter, sans-serif", // Pastikan font enak dibaca
+    primaryColor: "indigo",
+    defaultRadius: "md",
+    fontFamily: "Inter, sans-serif",
     cursorType: "pointer",
 });
 
@@ -28,9 +29,11 @@ createInertiaApp({
         const root = createRoot(el);
         root.render(
             <MantineProvider theme={theme}>
+                <Notifications position="top-right" zIndex={1000} />{" "}
+                {/* 2. Tambahkan ini */}
                 <App {...props} />
             </MantineProvider>,
         );
     },
-    progress: { color: "#4338ca" }, // Warna loading bar
+    progress: { color: "#4338ca" },
 });

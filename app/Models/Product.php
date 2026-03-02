@@ -19,7 +19,9 @@ class Product extends Model
         'stock',
         'image',
         'description',
-        'product_link'
+        'product_link',
+        'video_url',
+        'video_brief',
     ];
     // Relasi: Setiap Produk dimiliki oleh satu User (Staff)
     public function user()
@@ -29,5 +31,9 @@ class Product extends Model
     public function commissions()
     {
         return $this->hasMany(Commission::class);
+    }
+    public function seller()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

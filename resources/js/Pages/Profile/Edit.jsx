@@ -1,39 +1,65 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
-import DeleteUserForm from './Partials/DeleteUserForm';
-import UpdatePasswordForm from './Partials/UpdatePasswordForm';
-import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head } from "@inertiajs/react";
+import { Container, Stack, Title, Text, Box, Divider } from "@mantine/core";
+import UpdateProfileInformationForm from "./Partials/UpdateProfileInformationForm";
+import UpdatePasswordForm from "./Partials/UpdatePasswordForm";
+import DeleteUserForm from "./Partials/DeleteUserForm";
+import UpdatePaymentInformationForm from "./Partials/UpdatePaymentInformationForm";
 
-export default function Edit({ mustVerifyEmail, status }) {
+export default function Edit({ auth, mustVerifyEmail, status }) {
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Profile
-                </h2>
-            }
-        >
-            <Head title="Profile" />
+        <AuthenticatedLayout user={auth.user}>
+            <Head title="Pengaturan Profil" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+            {/* Container dibuat agak lebar (md atau 900px) agar form medsos tidak sesak */}
+            <Container size="md" py={40}>
+                <Stack gap={40}>
+                    {/* HEADER HALAMAN */}
+                    <Box>
+                        <Title order={1} fw={900} lts="-1px">
+                            Pengaturan Akun
+                        </Title>
+                        <Text c="dimmed" size="sm">
+                            Kelola informasi publik, data pembayaran, dan
+                            keamanan akun Anda.
+                        </Text>
+                    </Box>
+
+                    {/* 1. INFORMASI PROFIL & SOSMED */}
+                    {/* Kita tidak membungkusnya dengan Paper di sini karena 
+                        UpdateProfileInformationForm sudah punya Paper di dalamnya */}
+                    <Box>
                         <UpdateProfileInformationForm
                             mustVerifyEmail={mustVerifyEmail}
                             status={status}
-                            className="max-w-xl"
                         />
-                    </div>
+                    </Box>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <UpdatePasswordForm className="max-w-xl" />
-                    </div>
+                    <Divider size="xs" />
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <DeleteUserForm className="max-w-xl" />
-                    </div>
-                </div>
-            </div>
+                    {/* 2. KEAMANAN */}
+                    <Box>
+                        <Title order={3} mb="lg" fw={700}>
+                            Keamanan
+                        </Title>
+                        <UpdatePasswordForm />
+                    </Box>
+
+                    <Divider size="xs" />
+
+                    {/* 3. AREA BERBAHAYA */}
+                    <Box
+                        p="xl"
+                        style={{
+                            borderRadius: "8px",
+                            border: "1px solid var(--mantine-color-red-2)",
+                            backgroundColor: "var(--mantine-color-red-0)",
+                        }}
+                    >
+                        <DeleteUserForm />
+                    </Box>
+                </Stack>
+            </Container>
         </AuthenticatedLayout>
     );
 }

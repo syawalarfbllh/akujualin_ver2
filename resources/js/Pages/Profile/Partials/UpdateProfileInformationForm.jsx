@@ -1,113 +1,310 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import { Transition } from '@headlessui/react';
-import { Link, useForm, usePage } from '@inertiajs/react';
+import { Link, useForm, usePage } from "@inertiajs/react";
+import {
+    TextInput,
+    Button,
+    Stack,
+    Title,
+    Text,
+    Group,
+    Transition,
+    Box,
+    Avatar,
+    FileButton,
+    ActionIcon,
+    SimpleGrid,
+    NumberInput,
+    Textarea,
+    Paper,
+    Indicator,
+    Divider,
+    Badge,
+} from "@mantine/core";
+import {
+    IconDeviceFloppy,
+    IconMail,
+    IconUser,
+    IconCamera,
+    IconBrandWhatsapp,
+    IconBrandInstagram,
+    IconBrandTiktok,
+    IconLink,
+    IconPhone,
+    IconChartBar,
+} from "@tabler/icons-react";
 
-export default function UpdateProfileInformation({
+export default function UpdateProfileInformationForm({
     mustVerifyEmail,
     status,
-    className = '',
+    className = "",
 }) {
     const user = usePage().props.auth.user;
 
-    const { data, setData, patch, errors, processing, recentlySuccessful } =
+    const { data, setData, post, errors, processing, recentlySuccessful } =
         useForm({
-            name: user.name,
-            email: user.email,
+            name: user.name || "",
+            email: user.email || "",
+            phone_number: user.phone_number || "",
+            whatsapp: user.whatsapp || "",
+            instagram_username: user.instagram_username || "",
+            ig_followers: user.ig_followers || 0,
+            ig_profile_url: user.ig_profile_url || "",
+            tiktok_username: user.tiktok_username || "",
+            tiktok_followers: user.tiktok_followers || 0,
+            tiktok_profile_url: user.tiktok_profile_url || "",
+            bio: user.bio || "",
+            avatar: null,
+            _method: "PATCH",
         });
 
     const submit = (e) => {
         e.preventDefault();
-
-        patch(route('profile.update'));
+        post(route("profile.update"), {
+            preserveScroll: true,
+            forceFormData: true,
+        });
     };
 
     return (
-        <section className={className}>
-            <header>
-                <h2 className="text-lg font-medium text-gray-900">
-                    Profile Information
-                </h2>
-
-                <p className="mt-1 text-sm text-gray-600">
-                    Update your account's profile information and email address.
-                </p>
-            </header>
-
-            <form onSubmit={submit} className="mt-6 space-y-6">
-                <div>
-                    <InputLabel htmlFor="name" value="Name" />
-
-                    <TextInput
-                        id="name"
-                        className="mt-1 block w-full"
-                        value={data.name}
-                        onChange={(e) => setData('name', e.target.value)}
-                        required
-                        isFocused
-                        autoComplete="name"
-                    />
-
-                    <InputError className="mt-2" message={errors.name} />
-                </div>
-
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
-
-                    <TextInput
-                        id="email"
-                        type="email"
-                        className="mt-1 block w-full"
-                        value={data.email}
-                        onChange={(e) => setData('email', e.target.value)}
-                        required
-                        autoComplete="username"
-                    />
-
-                    <InputError className="mt-2" message={errors.email} />
-                </div>
-
-                {mustVerifyEmail && user.email_verified_at === null && (
-                    <div>
-                        <p className="mt-2 text-sm text-gray-800">
-                            Your email address is unverified.
-                            <Link
-                                href={route('verification.send')}
-                                method="post"
-                                as="button"
-                                className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        <Box className={className}>
+            <form onSubmit={submit}>
+                <Stack gap={30}>
+                    {/* 1. IDENTITAS UTAMA & FOTO */}
+                    <Paper withBorder p="xl" radius="md" shadow="sm">
+                        <Group align="center" gap="xl">
+                            <Indicator
+                                inline
+                                size={20}
+                                offset={7}
+                                position="bottom-end"
+                                label={
+                                    <FileButton
+                                        onChange={(file) =>
+                                            setData("avatar", file)
+                                        }
+                                        accept="image/png,image/jpeg"
+                                    >
+                                        {(props) => (
+                                            <ActionIcon
+                                                {...props}
+                                                variant="filled"
+                                                size="lg"
+                                                radius="xl"
+                                                color="blue"
+                                            >
+                                                <IconCamera size={18} />
+                                            </ActionIcon>
+                                        )}
+                                    </FileButton>
+                                }
                             >
-                                Click here to re-send the verification email.
-                            </Link>
-                        </p>
+                                <Avatar
+                                    src={
+                                        data.avatar
+                                            ? URL.createObjectURL(data.avatar)
+                                            : user.avatar
+                                    }
+                                    size={120}
+                                    radius="md"
+                                    variant="light"
+                                />
+                            </Indicator>
+                            <Box style={{ flex: 1 }}>
+                                <Title order={3} fw={800}>
+                                    {user.name}
+                                </Title>
+                                <Text c="dimmed" size="sm" mb="md">
+                                    Mahasiswa / Affiliator
+                                </Text>
+                                <Badge size="lg" variant="dot" color="blue">
+                                    Leaderboard Rank: #12
+                                </Badge>
+                            </Box>
+                        </Group>
+                    </Paper>
 
-                        {status === 'verification-link-sent' && (
-                            <div className="mt-2 text-sm font-medium text-green-600">
-                                A new verification link has been sent to your
-                                email address.
-                            </div>
-                        )}
-                    </div>
-                )}
+                    {/* 2. DATA SOSIAL MEDIA (Kredibilitas untuk UMKM) */}
+                    <Box>
+                        <Group mb="xs">
+                            <IconChartBar size={20} color="blue" />
+                            <Title order={4} fw={700}>
+                                Kredibilitas Media Sosial
+                            </Title>
+                        </Group>
+                        <Text size="xs" c="dimmed" mb="lg">
+                            Data ini akan dilihat oleh UMKM saat mencari partner
+                            promosi.
+                        </Text>
 
-                <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
+                        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
+                            {/* INSTAGRAM CARD */}
+                            <Paper withBorder p="md" radius="md">
+                                <Group mb="md">
+                                    <IconBrandInstagram
+                                        size={24}
+                                        color="#E1306C"
+                                    />
+                                    <Text fw={700}>Instagram Profile</Text>
+                                </Group>
+                                <Stack gap="sm">
+                                    <TextInput
+                                        label="Username"
+                                        placeholder="@username"
+                                        value={data.instagram_username}
+                                        onChange={(e) =>
+                                            setData(
+                                                "instagram_username",
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <NumberInput
+                                        label="Jumlah Pengikut (Followers)"
+                                        hideControls
+                                        value={data.ig_followers}
+                                        onChange={(val) =>
+                                            setData("ig_followers", val)
+                                        }
+                                    />
+                                    <TextInput
+                                        label="URL Profile"
+                                        leftSection={<IconLink size={14} />}
+                                        placeholder="https://instagram.com/..."
+                                        value={data.ig_profile_url}
+                                        onChange={(e) =>
+                                            setData(
+                                                "ig_profile_url",
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                </Stack>
+                            </Paper>
 
-                    <Transition
-                        show={recentlySuccessful}
-                        enter="transition ease-in-out"
-                        enterFrom="opacity-0"
-                        leave="transition ease-in-out"
-                        leaveTo="opacity-0"
+                            {/* TIKTOK CARD */}
+                            <Paper withBorder p="md" radius="md">
+                                <Group mb="md">
+                                    <IconBrandTiktok size={24} color="black" />
+                                    <Text fw={700}>TikTok Profile</Text>
+                                </Group>
+                                <Stack gap="sm">
+                                    <TextInput
+                                        label="Username"
+                                        placeholder="@username"
+                                        value={data.tiktok_username}
+                                        onChange={(e) =>
+                                            setData(
+                                                "tiktok_username",
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <NumberInput
+                                        label="Jumlah Pengikut (Followers)"
+                                        hideControls
+                                        value={data.tiktok_followers}
+                                        onChange={(val) =>
+                                            setData("tiktok_followers", val)
+                                        }
+                                    />
+                                    <TextInput
+                                        label="URL Profile"
+                                        leftSection={<IconLink size={14} />}
+                                        placeholder="https://tiktok.com/@..."
+                                        value={data.tiktok_profile_url}
+                                        onChange={(e) =>
+                                            setData(
+                                                "tiktok_profile_url",
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                </Stack>
+                            </Paper>
+                        </SimpleGrid>
+                    </Box>
+
+                    {/* 3. KONTAK & BIO (Untuk Tombol 'Hubungi' UMKM) */}
+                    <Paper withBorder p="xl" radius="md">
+                        <Title order={4} fw={700} mb="lg">
+                            Informasi Kontak & Bio
+                        </Title>
+                        <SimpleGrid
+                            cols={{ base: 1, md: 2 }}
+                            spacing="lg"
+                            mb="lg"
+                        >
+                            <TextInput
+                                label="Nomor WhatsApp"
+                                description="Pastikan aktif untuk dihubungi UMKM"
+                                leftSection={
+                                    <IconBrandWhatsapp
+                                        size={18}
+                                        color="green"
+                                    />
+                                }
+                                value={data.whatsapp}
+                                onChange={(e) =>
+                                    setData("whatsapp", e.target.value)
+                                }
+                            />
+                            <TextInput
+                                label="Nomor Telepon"
+                                description="Pastikan aktif untuk verifikasi dan komunikasi penting"
+                                leftSection={<IconPhone size={18} />}
+                                value={data.phone_number}
+                                onChange={(e) =>
+                                    setData("phone_number", e.target.value)
+                                }
+                            />
+                        </SimpleGrid>
+                        <Textarea
+                            label="Bio Portofolio"
+                            description="Tuliskan gaya promosi Anda agar UMKM tertarik bekerja sama"
+                            placeholder="Saya ahli dalam membuat video review produk kecantikan..."
+                            minRows={4}
+                            value={data.bio}
+                            onChange={(e) => setData("bio", e.target.value)}
+                        />
+                    </Paper>
+
+                    {/* ACTION BUTTON */}
+                    <Paper
+                        withBorder
+                        p="md"
+                        radius="md"
+                        style={{ borderStyle: "dashed" }}
                     >
-                        <p className="text-sm text-gray-600">
-                            Saved.
-                        </p>
-                    </Transition>
-                </div>
+                        <Group justify="space-between">
+                            <Box>
+                                <Transition
+                                    mounted={recentlySuccessful}
+                                    transition="fade"
+                                >
+                                    {(styles) => (
+                                        <Text
+                                            size="sm"
+                                            c="teal"
+                                            fw={600}
+                                            style={styles}
+                                        >
+                                            ✓ Profil berhasil diperbarui secara
+                                            lengkap
+                                        </Text>
+                                    )}
+                                </Transition>
+                            </Box>
+                            <Button
+                                type="submit"
+                                loading={processing}
+                                leftSection={<IconDeviceFloppy size={18} />}
+                                radius="md"
+                            >
+                                Simpan Portofolio Profil
+                            </Button>
+                        </Group>
+                    </Paper>
+                </Stack>
             </form>
-        </section>
+        </Box>
     );
 }

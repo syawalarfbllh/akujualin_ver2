@@ -34,9 +34,15 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'product_link' => 'nullable|url',
             'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'video_url' => 'required|mimetypes:video/mp4,video/quicktime|max:51200',
+            'video_brief' => 'nullable|string',
         ]);
 
-        $imagePath = $request->file('image')->store('products', 'public');
+        // Simpan Gambar
+        $imagePath = $request->file('image')->store('products/images', 'public');
+
+        // Simpan Video
+        $videoPath = $request->file('video_url')->store('products/videos', 'public');
 
         Product::create([
             'user_id' => Auth::id(),
@@ -47,10 +53,12 @@ class ProductController extends Controller
             'stock' => $validated['stock'],
             'description' => $validated['description'],
             'product_link' => $validated['product_link'],
-            'image' => $imagePath,
+            'image' => $imagePath, // Menggunakan kolom 'image' sesuai controller asli
+            'video_url' => $videoPath, // Pastikan kolom ini ada di migrasi
+            'video_brief' => $validated['video_brief'],
         ]);
 
-        return redirect()->route('staff.product.index')->with('message', 'Produk berhasil dibuat!');
+        return redirect()->route('staff.product.index')->with('message', 'Produk dan konten video berhasil dibuat!');
     }
 
     public function edit(Product $product)
@@ -71,22 +79,56 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'product_link' => 'nullable|url',
             'image' => 'nullable|image|max:2048',
+            'video_url' => 'required|mimes:mp4,mov,avi|max:50000',
+            'video_brief' => 'nullable|string',
         ]);
 
+        // Logika Update Image
         if ($request->hasFile('image')) {
             if ($product->image) Storage::disk('public')->delete($product->image);
-            $product->image = $request->file('image')->store('products', 'public');
+            $product->image = $request->file('image')->store('products/images', 'public');
         }
 
-        $product->update(collect($validated)->except('image')->toArray());
+        // Logika Update Video
+        if ($request->hasFile('video_url')) {
+            if ($product->video_url) Storage::disk('public')->delete($product->video_url);
+            $product->video_url = $request->file('video')->store('products/videos', 'public');
+        }
+
+        $product->update([
+            'name' => $validated['name'],
+            'price' => $validated['price'],
+            'commission_amount' => $validated['commission_amount'],
+            'stock' => $validated['stock'],
+            'description' => $validated['description'],
+            'product_link' => $validated['product_link'],
+            'video_brief' => $validated['video_brief'],
+            'image' => $product->image,
+            'video_url' => $product->video_url,
+        ]);
 
         return redirect()->route('staff.product.index')->with('message', 'Produk diperbarui!');
     }
 
+    public function destroy(Product $product)
+    {
+        if ($product->user_id !== Auth::id()) abort(403);
+
+        // Hapus Gambar fisik
+        if ($product->image) Storage::disk('public')->delete($product->image);
+
+        // Hapus Video fisik
+        if ($product->video_url) Storage::disk('public')->delete($product->video_url);
+
+        $product->delete();
+        return redirect()->back()->with('message', 'Produk dan konten terkait dihapus!');
+    }
+
+    // Katalog Mahasiswa dengan relasi lengkap
     public function katalog()
     {
         return Inertia::render('Mahasiswa/Katalog', [
-            'products' => \App\Models\Product::all()
+            'products' => Product::with('user')->latest()->get()
         ]);
     }
 
@@ -111,13 +153,5 @@ class ProductController extends Controller
 
         // Lempar ke link Shopee UMKM
         return redirect()->away($product->product_link);
-    }
-
-    public function destroy(Product $product)
-    {
-        if ($product->user_id !== Auth::id()) abort(403);
-        if ($product->image) Storage::disk('public')->delete($product->image);
-        $product->delete();
-        return redirect()->back()->with('message', 'Produk dihapus!');
     }
 }

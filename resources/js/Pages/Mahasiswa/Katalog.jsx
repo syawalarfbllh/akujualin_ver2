@@ -1,236 +1,314 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { useClipboard } from "@mantine/hooks";
 import { Head, useForm } from "@inertiajs/react";
 import {
-    Grid,
+    SimpleGrid,
     Card,
     Image,
     Text,
     Group,
     Badge,
     Button,
-    TextInput,
-    ActionIcon,
-    Tooltip,
     Stack,
-    Modal,
+    Title,
+    TextInput,
     Box,
+    Modal,
+    AspectRatio,
+    Divider,
+    Grid,
+    Paper,
+    Alert,
+    FileInput,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import {
-    IconCopy,
-    IconExternalLink,
     IconSearch,
+    IconDownload,
+    IconCopy,
+    IconInfoCircle,
+    IconMovie,
     IconCheck,
-    IconMessageDots,
+    IconAlertCircle,
+    IconPhoto,
 } from "@tabler/icons-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { notifications } from "@mantine/notifications";
 
-export default function Katalog({ auth, products = [], flash }) {
-    const [search, setSearch] = useState("");
-    const [copiedId, setCopiedId] = useState(null);
-    const [opened, setOpened] = useState(false);
+export default function Katalog({ auth, products }) {
+    const [opened, { open, close }] = useDisclosure(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [search, setSearch] = useState("");
 
-    // Notifikasi Sederhana
-    useEffect(() => {
-        if (flash?.success) {
-            alert(flash.success);
-        }
-    }, [flash]);
+    const clipboard = useClipboard({ timeout: 2000 });
 
+    // Inisialisasi Form Klaim (Tambahkan proof_image)
     const { data, setData, post, processing, reset, errors } = useForm({
         product_id: "",
         shopee_order_id: "",
+        proof_image: null,
     });
 
-    const handleCopy = (product) => {
-        const trackingUrl = `${window.location.origin}/ref/${product.id}/${auth.user.id}`;
-        navigator.clipboard.writeText(trackingUrl);
-        setCopiedId(product.id);
-        setTimeout(() => setCopiedId(null), 2000);
-    };
+    const filteredProducts = products.filter((p) =>
+        p.name.toLowerCase().includes(search.toLowerCase()),
+    );
 
-    const openClaimModal = (product) => {
+    const handleOpenDetail = (product) => {
         setSelectedProduct(product);
-        setData("product_id", product.id);
-        setOpened(true);
+        setData("product_id", product.id); // Set product_id ke form saat modal dibuka
+        open();
     };
 
-    const submitClaim = (e) => {
+    const handleClaimSubmit = (e) => {
         e.preventDefault();
+
+        // Sesuaikan nama route dengan web.php Anda (mahasiswa.claim.store)
         post(route("mahasiswa.claim.store"), {
+            forceFormData: true, // WAJIB ADA AGAR FILE BISA TERKIRIM
             onSuccess: () => {
-                setOpened(false);
-                reset();
+                reset("shopee_order_id", "proof_image"); // Reset inputan setelah sukses
+                notifications.show({
+                    title: "Klaim Terkirim",
+                    message:
+                        "Nomor pesanan beserta bukti sedang dalam verifikasi admin.",
+                    color: "teal",
+                    icon: <IconCheck size={16} />,
+                });
+                close(); // Tutup modal setelah berhasil
+            },
+            onError: (err) => {
+                console.error(err);
+                notifications.show({
+                    title: "Gagal Klaim",
+                    message:
+                        "Periksa kembali data Anda, pastikan gambar maksimal 2MB.",
+                    color: "red",
+                    icon: <IconAlertCircle size={16} />,
+                });
             },
         });
     };
 
-    // Filter produk dengan pengaman (jika products bukan array)
-    const filteredProducts = Array.isArray(products)
-        ? products.filter((p) =>
-              p.name.toLowerCase().includes(search.toLowerCase()),
-          )
-        : [];
+    const copyAffiliateLink = (product) => {
+        const link = `${window.location.origin}/l/${product.slug}/${auth.user.id}`;
+        clipboard.copy(link);
+        notifications.show({
+            title: "Link Disalin",
+            message: "Siap disebarkan ke sosmed!",
+            color: "blue",
+        });
+    };
 
     return (
         <AuthenticatedLayout user={auth.user}>
             <Head title="Katalog Produk" />
 
             <Stack gap="xl">
-                <Group justify="space-between">
-                    <Box>
-                        <Text size="xl" fw={800} color="indigo">
-                            Katalog Affiliate
-                        </Text>
-                        <Text size="sm" c="dimmed">
-                            Pilih produk, sebar link, dan klaim komisimu.
-                        </Text>
-                    </Box>
-                    <TextInput
-                        placeholder="Cari produk..."
-                        leftSection={<IconSearch size={16} />}
-                        value={search}
-                        onChange={(e) => setSearch(e.currentTarget.value)}
-                        w={{ base: "100%", sm: 300 }}
-                    />
-                </Group>
+                <Box>
+                    <Title order={2}>Katalog Produk UMKM</Title>
+                    <Text c="dimmed" size="sm">
+                        Cari produk, promosikan, dan klaim komisi Anda.
+                    </Text>
+                </Box>
 
-                {filteredProducts.length > 0 ? (
-                    <Grid gutter="md">
-                        {filteredProducts.map((product) => (
-                            <Grid.Col
-                                key={product.id}
-                                span={{ base: 12, sm: 6, md: 4, lg: 3 }}
+                <TextInput
+                    placeholder="Cari produk..."
+                    size="md"
+                    leftSection={<IconSearch size={18} />}
+                    value={search}
+                    onChange={(e) => setSearch(e.currentTarget.value)}
+                />
+
+                {/* Grid Responsif: HP: 2, Tablet: 3, PC: 4 */}
+                <SimpleGrid cols={{ base: 2, sm: 3, md: 4 }} spacing="xs">
+                    {filteredProducts.map((product) => (
+                        <Card
+                            key={product.id}
+                            shadow="sm"
+                            padding="xs"
+                            radius="md"
+                            withBorder
+                        >
+                            <Card.Section>
+                                <Image
+                                    src={`/storage/${product.image}`}
+                                    height={{ base: 100, sm: 140, md: 160 }}
+                                    alt={product.name}
+                                />
+                            </Card.Section>
+
+                            <Stack
+                                justify="space-between"
+                                mt="sm"
+                                gap="xs"
+                                style={{ flex: 1 }}
                             >
-                                <Card
-                                    shadow="sm"
-                                    padding="lg"
-                                    radius="md"
-                                    withBorder
+                                <Box>
+                                    <Text fw={700} size="sm" lineClamp={1}>
+                                        {product.name}
+                                    </Text>
+                                    <Badge
+                                        color="green"
+                                        variant="light"
+                                        fullWidth
+                                        mt={4}
+                                        size="xs"
+                                    >
+                                        Komisi Rp
+                                        {product.commission_amount.toLocaleString()}
+                                    </Badge>
+                                </Box>
+                                <Button
+                                    variant="filled"
+                                    color="blue"
+                                    size="xs"
+                                    fullWidth
+                                    onClick={() => handleOpenDetail(product)}
+                                    leftSection={<IconInfoCircle size={14} />}
                                 >
-                                    <Card.Section>
-                                        <Image
-                                            src={
-                                                product.image
-                                                    ? `/storage/${product.image}`
-                                                    : null
-                                            }
-                                            height={160}
-                                            fallbackSrc="https://placehold.co/400x200?text=No+Image"
-                                        />
-                                    </Card.Section>
+                                    Detail & Klaim
+                                </Button>
+                            </Stack>
+                        </Card>
+                    ))}
+                </SimpleGrid>
 
-                                    <Stack mt="md" gap="xs">
-                                        <Text fw={700} truncate>
-                                            {product.name}
-                                        </Text>
-                                        <Badge
-                                            color="green"
-                                            variant="light"
-                                            fullWidth
-                                        >
-                                            Komisi: Rp{" "}
-                                            {Number(
-                                                product.commission_amount || 0,
-                                            ).toLocaleString("id-ID")}
-                                        </Badge>
-                                        <Text size="lg" fw={800}>
-                                            Rp{" "}
-                                            {Number(
-                                                product.price || 0,
-                                            ).toLocaleString("id-ID")}
-                                        </Text>
-                                    </Stack>
+                {/* MODAL DETAIL & FORM KLAIM */}
+                <Modal
+                    opened={opened}
+                    onClose={close}
+                    title={<Text fw={700}>Bahan Promosi & Klaim</Text>}
+                    size="lg"
+                    centered
+                >
+                    {selectedProduct && (
+                        <Grid gutter="xl">
+                            {/* Sisi Kiri: Video & Media */}
+                            <Grid.Col span={{ base: 12, md: 5 }}>
+                                <AspectRatio ratio={9 / 16}>
+                                    <video
+                                        src={`/storage/${selectedProduct.video_url}`}
+                                        controls
+                                        style={{
+                                            borderRadius: "8px",
+                                            backgroundColor: "#000",
+                                        }}
+                                    />
+                                </AspectRatio>
+                                <Button
+                                    fullWidth
+                                    mt="sm"
+                                    variant="light"
+                                    leftSection={<IconDownload size={16} />}
+                                    component="a"
+                                    href={`/storage/${selectedProduct.video_url}`}
+                                    download
+                                >
+                                    Download Video
+                                </Button>
+                            </Grid.Col>
 
-                                    <Stack mt="md" gap="xs">
-                                        <Group grow gap="xs">
-                                            <Button
-                                                leftSection={
-                                                    copiedId === product.id ? (
-                                                        <IconCheck size={16} />
-                                                    ) : (
-                                                        <IconCopy size={16} />
+                            {/* Sisi Kanan: Detail & Form Klaim */}
+                            <Grid.Col span={{ base: 12, md: 7 }}>
+                                <Stack>
+                                    <Box>
+                                        <Text fw={700} size="xl">
+                                            {selectedProduct.name}
+                                        </Text>
+                                        <Text size="sm" c="green" fw={600}>
+                                            Potensi Komisi: Rp{" "}
+                                            {selectedProduct.commission_amount.toLocaleString()}
+                                        </Text>
+                                    </Box>
+
+                                    <Button
+                                        color={
+                                            clipboard.copied ? "teal" : "blue"
+                                        }
+                                        variant="outline"
+                                        leftSection={<IconCopy size={18} />}
+                                        onClick={() =>
+                                            copyAffiliateLink(selectedProduct)
+                                        }
+                                        fullWidth
+                                    >
+                                        {clipboard.copied
+                                            ? "Link Tersalin!"
+                                            : "Salin Link Affiliate"}
+                                    </Button>
+
+                                    <Divider
+                                        label="Form Klaim Komisi"
+                                        labelPosition="center"
+                                        my="sm"
+                                    />
+
+                                    <form onSubmit={handleClaimSubmit}>
+                                        <Stack gap="xs">
+                                            <TextInput
+                                                label="ID Pesanan Shopee"
+                                                placeholder="Contoh: 240101XXXXX"
+                                                required
+                                                value={data.shopee_order_id}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        "shopee_order_id",
+                                                        e.currentTarget.value,
                                                     )
                                                 }
-                                                variant="light"
-                                                onClick={() =>
-                                                    handleCopy(product)
-                                                }
-                                            >
-                                                {copiedId === product.id
-                                                    ? "Tersalin"
-                                                    : "Link"}
-                                            </Button>
-                                            <ActionIcon
-                                                variant="outline"
-                                                color="orange"
-                                                size="36px"
-                                                component="a"
-                                                href={product.product_link}
-                                                target="_blank"
-                                            >
-                                                <IconExternalLink size={18} />
-                                            </ActionIcon>
-                                        </Group>
-                                        <Button
-                                            fullWidth
-                                            variant="filled"
-                                            color="orange"
-                                            leftSection={
-                                                <IconMessageDots size={16} />
-                                            }
-                                            onClick={() =>
-                                                openClaimModal(product)
-                                            }
-                                        >
-                                            Klaim Komisi
-                                        </Button>
-                                    </Stack>
-                                </Card>
-                            </Grid.Col>
-                        ))}
-                    </Grid>
-                ) : (
-                    <Paper withBorder p="xl" radius="md" ta="center">
-                        <Text c="dimmed">
-                            Belum ada produk yang tersedia di katalog.
-                        </Text>
-                    </Paper>
-                )}
-            </Stack>
+                                                error={errors.shopee_order_id}
+                                            />
 
-            <Modal
-                opened={opened}
-                onClose={() => setOpened(false)}
-                title="Input Nomor Pesanan Shopee"
-                centered
-            >
-                <form onSubmit={submitClaim}>
-                    <Stack>
-                        <Text size="sm">
-                            Pastikan nomor pesanan sesuai dengan Shopee.
-                        </Text>
-                        <TextInput
-                            label="Nomor Pesanan"
-                            placeholder="Contoh: 240512XXXXXXXX"
-                            required
-                            value={data.shopee_order_id}
-                            onChange={(e) =>
-                                setData("shopee_order_id", e.target.value)
-                            }
-                            error={errors.shopee_order_id}
-                        />
-                        <Button
-                            type="submit"
-                            fullWidth
-                            loading={processing}
-                            color="indigo"
-                        >
-                            Kirim Klaim
-                        </Button>
-                    </Stack>
-                </form>
-            </Modal>
+                                            {/* TAMBAHAN FORM INPUT FILE GAMBAR */}
+                                            <FileInput
+                                                label="Bukti Transaksi / Screenshot"
+                                                placeholder="Upload gambar (.jpg, .png)"
+                                                accept="image/png,image/jpeg,image/jpg"
+                                                leftSection={
+                                                    <IconPhoto size={16} />
+                                                }
+                                                value={data.proof_image}
+                                                onChange={(file) =>
+                                                    setData("proof_image", file)
+                                                }
+                                                error={errors.proof_image}
+                                                clearable
+                                            />
+
+                                            <Alert
+                                                icon={
+                                                    <IconAlertCircle
+                                                        size={14}
+                                                    />
+                                                }
+                                                color="blue"
+                                                variant="light"
+                                                py={5}
+                                            >
+                                                <Text size="10px">
+                                                    Input ID Pesanan dan upload
+                                                    bukti screenshot jika
+                                                    pembeli sudah menyelesaikan
+                                                    pembayaran melalui link
+                                                    Anda. Max file: 2MB.
+                                                </Text>
+                                            </Alert>
+                                            <Button
+                                                type="submit"
+                                                color="green"
+                                                loading={processing}
+                                                fullWidth
+                                            >
+                                                Klaim Komisi Sekarang
+                                            </Button>
+                                        </Stack>
+                                    </form>
+                                </Stack>
+                            </Grid.Col>
+                        </Grid>
+                    )}
+                </Modal>
+            </Stack>
         </AuthenticatedLayout>
     );
 }

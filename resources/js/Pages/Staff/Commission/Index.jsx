@@ -1,4 +1,7 @@
+import React, { useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { useDisclosure } from "@mantine/hooks";
+import { DateInput } from "@mantine/dates";
 import { Head, router } from "@inertiajs/react";
 import {
     Table,
@@ -13,6 +16,9 @@ import {
     ThemeIcon,
     ActionIcon,
     Tooltip,
+    Modal,
+    Grid,
+    Image,
 } from "@mantine/core";
 import {
     IconCheck,
@@ -21,11 +27,65 @@ import {
     IconExternalLink,
     IconClipboardList,
     IconMoodEmpty,
+    IconFilter,
+    IconPhoto,
 } from "@tabler/icons-react";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
-export default function Index({ auth, commissions = [] }) {
+export default function Index({ auth, commissions = [], filters = {} }) {
+    // State untuk filter tanggal
+    const [startDate, setStartDate] = useState(
+        filters.date_start ? new Date(filters.date_start) : null,
+    );
+    const [endDate, setEndDate] = useState(
+        filters.date_end ? new Date(filters.date_end) : null,
+    );
+
+    // State untuk Modal Bukti Foto
+    const [opened, { open, close }] = useDisclosure(false);
+    const [selectedProof, setSelectedProof] = useState(null);
+
+    // FUNGSI LIHAT BUKTI FOTO (Tambahan yang kurang)
+    const handleViewProof = (imagePath) => {
+        setSelectedProof(imagePath);
+        open();
+    };
+
+    // FUNGSI FILTER
+    const handleFilter = () => {
+        const formatDate = (date) => {
+            if (!date) return null;
+
+            const dateObj = date instanceof Date ? date : new Date(date);
+
+            // Jika konversi gagal (Invalid Date), return null
+            if (isNaN(dateObj.getTime())) return null;
+
+            const offset = dateObj.getTimezoneOffset();
+            const adjustedDate = new Date(
+                dateObj.getTime() - offset * 60 * 1000,
+            );
+            return adjustedDate.toISOString().split("T")[0];
+        };
+
+        router.get(
+            route("staff.commission.index"),
+            {
+                date_start: formatDate(startDate),
+                date_end: formatDate(endDate),
+            },
+            { preserveState: true },
+        );
+    };
+
+    // FUNGSI RESET FILTER
+    const handleReset = () => {
+        setStartDate(null);
+        setEndDate(null);
+        router.get(route("staff.commission.index"), {}, { replace: true });
+    };
+
     // FUNGSI EXPORT EXCEL
     const exportToExcel = async () => {
         const workbook = new ExcelJS.Workbook();
@@ -40,22 +100,22 @@ export default function Index({ auth, commissions = [] }) {
             { header: "Status", key: "status", width: 15 },
         ];
 
+        worksheet.getRow(1).font = { bold: true };
+
         commissions.forEach((item) => {
             worksheet.addRow({
                 date: new Date(item.created_at).toLocaleDateString("id-ID"),
-                student: item.user?.name,
-                product: item.product?.name,
+                student: item.user?.name || "-",
+                product: item.product?.name || "-",
                 order_id: item.shopee_order_id,
-                amount: item.amount,
-                status: item.status.toUpperCase(),
+                amount: Number(item.amount),
+                status: (item.status || "").toUpperCase(),
             });
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(
-            new Blob([buffer]),
-            `Laporan_Komisi_UMKM_${new Date().toISOString().slice(0, 10)}.xlsx`,
-        );
+        const dateStr = new Date().toISOString().slice(0, 10);
+        saveAs(new Blob([buffer]), `Laporan_Komisi_Filtered_${dateStr}.xlsx`);
     };
 
     // FUNGSI UPDATE STATUS
@@ -70,6 +130,7 @@ export default function Index({ auth, commissions = [] }) {
             <Head title="Validasi Komisi" />
 
             <Stack gap="xl">
+                {/* Header Section */}
                 <Group justify="space-between" align="flex-end">
                     <Box>
                         <Group gap="xs" mb="xs">
@@ -79,21 +140,65 @@ export default function Index({ auth, commissions = [] }) {
                             <Title order={2}>Validasi Klaim Komisi</Title>
                         </Group>
                         <Text size="sm" c="dimmed">
-                            Cek validitas ID Pesanan Shopee sebelum menyetujui
-                            klaim mahasiswa.
+                            Kelola dan validasi klaim komisi mahasiswa
+                            berdasarkan periode tertentu.
                         </Text>
                     </Box>
+
                     <Button
                         leftSection={<IconDownload size={16} />}
                         color="green"
-                        variant="light"
+                        variant="filled"
                         onClick={exportToExcel}
                         disabled={commissions.length === 0}
                     >
-                        Export Laporan Excel
+                        Export Excel (.xlsx)
                     </Button>
                 </Group>
 
+                {/* Filter Section */}
+                <Paper withBorder radius="md" p="md" bg="gray.0">
+                    <Grid align="flex-end">
+                        <Grid.Col span={{ base: 12, sm: 4 }}>
+                            <DateInput
+                                value={startDate}
+                                onChange={setStartDate}
+                                label="Dari Tanggal"
+                                placeholder="Pilih tanggal mulai"
+                                clearable
+                            />
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 12, sm: 4 }}>
+                            <DateInput
+                                value={endDate}
+                                onChange={setEndDate}
+                                label="Sampai Tanggal"
+                                placeholder="Pilih tanggal akhir"
+                                clearable
+                            />
+                        </Grid.Col>
+                        <Grid.Col span={{ base: 12, sm: 4 }}>
+                            <Group grow>
+                                <Button
+                                    leftSection={<IconFilter size={16} />}
+                                    onClick={handleFilter}
+                                    color="indigo"
+                                >
+                                    Filter
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    color="gray"
+                                    onClick={handleReset}
+                                >
+                                    Reset
+                                </Button>
+                            </Group>
+                        </Grid.Col>
+                    </Grid>
+                </Paper>
+
+                {/* Table Section */}
                 <Paper withBorder radius="md" p="md" shadow="xs">
                     <Table.ScrollContainer minWidth={800}>
                         <Table verticalSpacing="md" highlightOnHover>
@@ -103,6 +208,7 @@ export default function Index({ auth, commissions = [] }) {
                                     <Table.Th>Info Produk</Table.Th>
                                     <Table.Th>Shopee Order ID</Table.Th>
                                     <Table.Th>Nominal</Table.Th>
+                                    <Table.Th>Bukti</Table.Th>
                                     <Table.Th>Status</Table.Th>
                                     <Table.Th>Aksi</Table.Th>
                                 </Table.Tr>
@@ -117,6 +223,11 @@ export default function Index({ auth, commissions = [] }) {
                                                         item.created_at,
                                                     ).toLocaleDateString(
                                                         "id-ID",
+                                                        {
+                                                            day: "numeric",
+                                                            month: "long",
+                                                            year: "numeric",
+                                                        },
                                                     )}
                                                 </Text>
                                                 <Text fw={600} size="sm">
@@ -142,6 +253,9 @@ export default function Index({ auth, commissions = [] }) {
                                                             size="sm"
                                                             variant="subtle"
                                                             color="orange"
+                                                            component="a"
+                                                            href={`https://shopee.co.id/search?keyword=${item.shopee_order_id}`}
+                                                            target="_blank"
                                                         >
                                                             <IconExternalLink
                                                                 size={14}
@@ -157,6 +271,34 @@ export default function Index({ auth, commissions = [] }) {
                                                         item.amount,
                                                     ).toLocaleString("id-ID")}
                                                 </Text>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                {/* Tombol Lihat Bukti */}
+                                                {item.proof_image ? (
+                                                    <Badge
+                                                        variant="light"
+                                                        color="blue"
+                                                        leftSection={
+                                                            <IconPhoto
+                                                                size={12}
+                                                            />
+                                                        }
+                                                        style={{
+                                                            cursor: "pointer",
+                                                        }}
+                                                        onClick={() =>
+                                                            handleViewProof(
+                                                                item.proof_image,
+                                                            )
+                                                        }
+                                                    >
+                                                        Lihat
+                                                    </Badge>
+                                                ) : (
+                                                    <Text size="xs" c="dimmed">
+                                                        -
+                                                    </Text>
+                                                )}
                                             </Table.Td>
                                             <Table.Td>
                                                 <Badge
@@ -228,7 +370,7 @@ export default function Index({ auth, commissions = [] }) {
                                 ) : (
                                     <Table.Tr>
                                         <Table.Td
-                                            colSpan={6}
+                                            colSpan={7} // Diubah jadi 7 karena ada tambahan kolom Bukti
                                             ta="center"
                                             py="xl"
                                         >
@@ -238,8 +380,8 @@ export default function Index({ auth, commissions = [] }) {
                                                     color="gray"
                                                 />
                                                 <Text c="dimmed">
-                                                    Belum ada klaim komisi untuk
-                                                    divalidasi.
+                                                    Tidak ada data klaim untuk
+                                                    periode ini.
                                                 </Text>
                                             </Stack>
                                         </Table.Td>
@@ -249,6 +391,27 @@ export default function Index({ auth, commissions = [] }) {
                         </Table>
                     </Table.ScrollContainer>
                 </Paper>
+
+                {/* Modal untuk Menampilkan Bukti Foto */}
+                <Modal
+                    opened={opened}
+                    onClose={close}
+                    title={<Text fw={700}>Bukti Transaksi</Text>}
+                    centered
+                >
+                    {selectedProof ? (
+                        <Image
+                            radius="md"
+                            src={`/storage/${selectedProof}`}
+                            alt="Bukti Klaim"
+                            fallbackSrc="https://placehold.co/600x400?text=Gambar+Tidak+Ditemukan"
+                        />
+                    ) : (
+                        <Text c="dimmed" ta="center">
+                            Tidak ada gambar yang dipilih.
+                        </Text>
+                    )}
+                </Modal>
             </Stack>
         </AuthenticatedLayout>
     );

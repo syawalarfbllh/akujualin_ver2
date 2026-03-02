@@ -1,15 +1,20 @@
 import { useState } from "react";
 import { Link, usePage } from "@inertiajs/react";
 import {
-    Box,
+    AppShell,
+    Burger,
+    Group,
+    Text,
     NavLink,
     Stack,
-    Text,
-    Group,
     ThemeIcon,
-    Divider,
     ScrollArea,
+    Avatar,
+    Box,
+    Menu,
+    UnstyledButton,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import {
     IconDashboard,
     IconUsers,
@@ -17,174 +22,404 @@ import {
     IconClipboardList,
     IconShoppingBag,
     IconHistory,
-    IconChartBar,
-    IconSettings,
+    IconVideo,
+    IconLogout,
+    IconChevronRight,
+    IconUser,
+    IconChevronDown,
+    IconWallet,
+    IconTrophy,
+    IconSearch,
+    IconPlus,
+    IconSchool,
 } from "@tabler/icons-react";
 
 export default function AuthenticatedLayout({ user, children }) {
     const { url } = usePage();
+    const [opened, { toggle, close }] = useDisclosure();
 
-    // DEFINISI MENU BERDASARKAN ROLE
+    // --- KONFIGURASI MENU ---
     const menuConfig = {
+        // 1. MENU ADMIN
         admin: [
             {
-                label: "Dashboard",
-                icon: IconDashboard,
-                route: "admin.dashboard",
+                group: "Overview",
+                items: [
+                    {
+                        label: "Dashboard",
+                        icon: IconDashboard,
+                        route: "admin.dashboard",
+                    },
+                ],
             },
             {
-                label: "Kelola User",
-                icon: IconUsers,
-                route: "admin.users.index",
+                group: "Supervisi Bisnis", // Update Bagian Ini
+                items: [
+                    {
+                        label: "Performa Seller",
+                        icon: IconBuildingStore,
+                        route: "admin.monitor.staff", // Sesuai routes/web.php
+                    },
+                    {
+                        label: "Kinerja Mahasiswa",
+                        icon: IconSchool,
+                        route: "admin.monitor.mahasiswa", // Sesuai routes/web.php
+                    },
+                    {
+                        label: "Top Leaderboard",
+                        icon: IconTrophy,
+                        route: "admin.monitor.leaderboard", // Sesuai routes/web.php
+                    },
+                ],
             },
             {
-                label: "Monitor Produk",
-                icon: IconBuildingStore,
-                route: "admin.products.index",
+                group: "Validasi & Keuangan",
+                items: [
+                    {
+                        label: "Validasi Produk",
+                        icon: IconClipboardList,
+                        route: "admin.products.index",
+                    },
+                    {
+                        label: "Pencairan Komisi",
+                        icon: IconWallet,
+                        route: "admin.claims.index",
+                    },
+                ],
             },
             {
-                label: "Monitor Klaim",
-                icon: IconChartBar,
-                route: "admin.claims.index",
+                group: "Sistem",
+                items: [
+                    {
+                        label: "Manajemen User",
+                        icon: IconUsers,
+                        route: "admin.users.index",
+                    },
+                ],
             },
         ],
+
+        // 2. MENU STAFF UMKM
         staff_umkm: [
             {
-                label: "Dashboard",
-                icon: IconDashboard,
-                route: "staff.dashboard",
+                group: "Menu Utama",
+                items: [
+                    {
+                        label: "Dashboard",
+                        icon: IconDashboard,
+                        route: "staff.dashboard",
+                    },
+                ],
             },
             {
-                label: "Produk Saya",
-                icon: IconShoppingBag,
-                route: "staff.product.index",
+                group: "Manajemen Produk",
+                items: [
+                    {
+                        label: "Katalog Produk",
+                        icon: IconShoppingBag,
+                        route: "staff.product.index",
+                    },
+                    {
+                        label: "Tambah Produk",
+                        icon: IconPlus,
+                        route: "staff.product.create",
+                    },
+                    {
+                        label: "Gudang Konten",
+                        icon: IconVideo,
+                        route: "staff.content.index",
+                    },
+                ],
             },
             {
-                label: "Validasi Klaim",
-                icon: IconClipboardList,
-                route: "staff.commission.index",
+                group: "Affiliate & Komisi",
+                items: [
+                    {
+                        label: "Validasi Komisi",
+                        icon: IconClipboardList,
+                        route: "staff.commission.index",
+                    },
+                    {
+                        label: "Cari Affiliator",
+                        icon: IconSearch,
+                        route: "staff.affiliate.index",
+                    },
+                    {
+                        label: "Leaderboard",
+                        icon: IconTrophy,
+                        route: "staff.affiliate.leaderboard",
+                    },
+                ],
             },
         ],
+
+        // 3. MENU MAHASISWA
         mahasiswa: [
             {
-                label: "Dashboard",
-                icon: IconDashboard,
-                route: "mahasiswa.dashboard",
+                group: "Menu Utama",
+                items: [
+                    {
+                        label: "Dashboard",
+                        icon: IconDashboard,
+                        route: "mahasiswa.dashboard",
+                    },
+                ],
             },
             {
-                label: "Katalog Produk",
-                icon: IconShoppingBag,
-                route: "mahasiswa.katalog",
+                group: "Eksplorasi Cuan",
+                items: [
+                    {
+                        label: "Katalog Produk",
+                        icon: IconShoppingBag,
+                        route: "mahasiswa.katalog",
+                    },
+                    {
+                        label: "Katalog Konten",
+                        icon: IconVideo,
+                        route: "mahasiswa.content.library",
+                    },
+                ],
             },
             {
-                label: "Riwayat Klaim",
-                icon: IconHistory,
-                route: "mahasiswa.claim.history",
+                group: "Dompet Saya",
+                items: [
+                    {
+                        label: "Riwayat Klaim",
+                        icon: IconHistory,
+                        route: "mahasiswa.claim.history",
+                    },
+                ],
             },
         ],
     };
 
+    // Ambil menu berdasarkan role user yang sedang login
     const activeMenu = menuConfig[user.role] || [];
 
+    // --- HELPER FUNCTIONS ---
+
+    // Cek apakah route aktif menggunakan Ziggy route().current()
+    // Lebih akurat daripada string matching manual
+    const isRouteActive = (routeKey) => {
+        try {
+            // Jika routeKey ada wildcard (misal 'admin.products.*')
+            return route().current(routeKey);
+        } catch (e) {
+            return false;
+        }
+    };
+
+    // Safe route wrapper agar tidak error halaman putih jika route belum dibuat
+    const safeRoute = (name) => {
+        try {
+            return route(name);
+        } catch (e) {
+            console.warn(`Route [${name}] not found in Ziggy list.`);
+            return "#";
+        }
+    };
+
     return (
-        <Box
-            style={{
-                display: "flex",
-                minHeight: "100vh",
-                backgroundColor: "#f8f9fa",
+        <AppShell
+            header={{ height: 60 }}
+            navbar={{
+                width: 260,
+                breakpoint: "sm",
+                collapsed: { mobile: !opened },
             }}
+            padding="md"
         >
-            {/* SIDEBAR */}
-            <Box
-                w={260}
-                p="md"
-                style={{
-                    borderRight: "1px solid #e9ecef",
-                    backgroundColor: "white",
-                    position: "fixed",
-                    height: "100vh",
-                }}
+            {/* HEADER */}
+            <AppShell.Header
+                bg="white"
+                style={{ borderBottom: "1px solid #e9ecef" }}
             >
-                <Stack justify="space-between" h="100%">
-                    <Box>
-                        <Group mb="xl" px="sm">
+                <Group h="100%" px="xl" justify="space-between">
+                    <Group>
+                        <Burger
+                            opened={opened}
+                            onClick={toggle}
+                            hiddenFrom="sm"
+                            size="sm"
+                        />
+                        <Group gap="xs">
                             <ThemeIcon
                                 size="lg"
                                 variant="gradient"
                                 gradient={{ from: "blue", to: "cyan" }}
+                                radius="md"
                             >
                                 <IconShoppingBag size={20} />
                             </ThemeIcon>
                             <Text
-                                fw={800}
-                                size="lg"
+                                fw={900}
+                                size="xl"
+                                lts="-1px"
                                 variant="gradient"
                                 gradient={{ from: "blue", to: "cyan" }}
+                                visibleFrom="xs"
                             >
                                 AKUJUALIN
                             </Text>
                         </Group>
+                    </Group>
 
-                        <Text
-                            size="xs"
-                            fw={700}
-                            c="dimmed"
-                            mb="xs"
-                            px="sm"
-                            tt="uppercase"
-                        >
-                            Menu Utama
-                        </Text>
+                    {/* USER PROFILE DROPDOWN */}
+                    <Menu
+                        shadow="md"
+                        width={200}
+                        position="bottom-end"
+                        transitionProps={{ transition: "pop-top-right" }}
+                        withArrow
+                    >
+                        <Menu.Target>
+                            <UnstyledButton
+                                style={{
+                                    padding: "4px 8px",
+                                    borderRadius: "8px",
+                                    transition: "background-color 0.2s",
+                                }}
+                            >
+                                <Group gap="xs">
+                                    <Avatar
+                                        src={user.avatar}
+                                        radius="xl"
+                                        size="sm"
+                                        color="blue"
+                                        name={user.name}
+                                    >
+                                        {user.name.charAt(0)}
+                                    </Avatar>
+                                    <Box style={{ flex: 1 }} visibleFrom="sm">
+                                        <Text size="sm" fw={700} lh={1}>
+                                            {user.name}
+                                        </Text>
+                                        <Text
+                                            size="xs"
+                                            c="dimmed"
+                                            tt="capitalize"
+                                        >
+                                            {user.role.replace("_", " ")}
+                                        </Text>
+                                    </Box>
+                                    <IconChevronDown
+                                        size={14}
+                                        stroke={1.5}
+                                        color="gray"
+                                    />
+                                </Group>
+                            </UnstyledButton>
+                        </Menu.Target>
 
-                        <Stack gap={4}>
-                            {activeMenu.map((item) => (
-                                <NavLink
-                                    key={item.label}
-                                    component={Link}
-                                    href={route(item.route)}
-                                    label={item.label}
-                                    leftSection={
-                                        <item.icon size={18} stroke={1.5} />
-                                    }
-                                    active={url.startsWith(
-                                        route(item.route, {}, false),
-                                    )}
-                                    variant="light"
-                                    color="blue"
-                                    styles={{
-                                        root: { borderRadius: "8px" },
-                                    }}
-                                />
-                            ))}
-                        </Stack>
-                    </Box>
+                        <Menu.Dropdown>
+                            <Menu.Label>Akun Saya</Menu.Label>
+                            <Menu.Item
+                                component={Link}
+                                href={route("profile.edit")}
+                                leftSection={<IconUser size={14} />}
+                            >
+                                Profil Saya
+                            </Menu.Item>
 
-                    <Box>
-                        <Divider mb="sm" />
-                        <NavLink
-                            component={Link}
-                            href={route("profile.edit")}
-                            label="Pengaturan Profil"
-                            leftSection={<IconSettings size={18} />}
-                            active={url === "/profile"}
-                            mb={4}
-                        />
-                        <NavLink
-                            component={Link}
-                            method="post"
-                            href={route("logout")}
-                            label="Keluar"
-                            leftSection={<IconHistory size={18} />}
-                            color="red"
-                        />
-                    </Box>
-                </Stack>
-            </Box>
+                            <Menu.Divider />
 
-            {/* MAIN CONTENT */}
-            <Box style={{ flex: 1, marginLeft: 260 }} p="xl">
-                {children}
-            </Box>
-        </Box>
+                            <Menu.Item
+                                component={Link}
+                                method="post"
+                                as="button"
+                                href={route("logout")}
+                                color="red"
+                                leftSection={<IconLogout size={14} />}
+                            >
+                                Keluar
+                            </Menu.Item>
+                        </Menu.Dropdown>
+                    </Menu>
+                </Group>
+            </AppShell.Header>
+
+            {/* SIDEBAR NAVIGATION */}
+            <AppShell.Navbar p="md" bg="white">
+                <AppShell.Section grow component={ScrollArea}>
+                    {activeMenu.map((section, idx) => (
+                        <Box key={idx} mb="lg">
+                            {/* Group Title */}
+                            {section.group && (
+                                <Text
+                                    size="xs"
+                                    fw={700}
+                                    c="dimmed"
+                                    mb="xs"
+                                    tt="uppercase"
+                                    ls={0.5}
+                                >
+                                    {section.group}
+                                </Text>
+                            )}
+
+                            {/* Menu Items */}
+                            <Stack gap={4}>
+                                {section.items.map((item) => {
+                                    const active = isRouteActive(item.route);
+
+                                    return (
+                                        <NavLink
+                                            key={item.label}
+                                            component={Link}
+                                            href={safeRoute(item.route)}
+                                            label={
+                                                <Text
+                                                    size="sm"
+                                                    fw={active ? 700 : 500}
+                                                >
+                                                    {item.label}
+                                                </Text>
+                                            }
+                                            onClick={() => {
+                                                if (window.innerWidth < 768)
+                                                    close();
+                                            }}
+                                            leftSection={
+                                                <item.icon
+                                                    size={20}
+                                                    stroke={1.5}
+                                                />
+                                            }
+                                            rightSection={
+                                                active && (
+                                                    <IconChevronRight
+                                                        size={14}
+                                                        stroke={1.5}
+                                                    />
+                                                )
+                                            }
+                                            active={active}
+                                            variant="light"
+                                            color="blue"
+                                            styles={{
+                                                root: {
+                                                    borderRadius: "8px",
+                                                    marginBottom: "2px",
+                                                },
+                                            }}
+                                        />
+                                    );
+                                })}
+                            </Stack>
+                        </Box>
+                    ))}
+                </AppShell.Section>
+            </AppShell.Navbar>
+
+            {/* MAIN CONTENT AREA */}
+            <AppShell.Main bg="gray.0">
+                <Box
+                    p={{ base: "xs", sm: "md" }}
+                    style={{ minHeight: "100vh" }}
+                >
+                    {children}
+                </Box>
+            </AppShell.Main>
+        </AppShell>
     );
 }

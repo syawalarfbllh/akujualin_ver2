@@ -1,13 +1,18 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ProductController;
+use App\Http\Controllers\AdminMonitorController;
 use App\Http\Controllers\CommissionController;
+use App\Http\Controllers\ContentVideoController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Staff\AffiliateController;
+use App\Http\Controllers\TrackingController;
+use App\Http\Controllers\RedirectController;
 use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Auth;
 
 // --- 1. HALAMAN DEPAN (PUBLIC) ---
 Route::get('/', function () {
@@ -38,7 +43,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ====================================================
     // A. GROUP ADMIN
     // ====================================================
-    Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/users', [DashboardController::class, 'usersIndex'])->name('users.index');
 
@@ -46,6 +51,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/monitoring-produk', [DashboardController::class, 'adminProducts'])->name('products.index');
         Route::get('/monitoring-klaim', [DashboardController::class, 'adminClaims'])->name('claims.index');
 
+        // --- PERBAIKAN DI SINI ---
+        // 1. Ubah name 'monitor.umkm' jadi 'monitor.staff' agar sesuai tombol dashboard
+        Route::get('/monitor/staff', [AdminMonitorController::class, 'umkm'])
+            ->name('monitor.staff'); 
+
+        // 2. Monitor Mahasiswa
+        Route::get('/monitor/mahasiswa', [AdminMonitorController::class, 'mahasiswa'])
+            ->name('monitor.mahasiswa'); 
+
+        // 3. Leaderboard (Opsional)
+        Route::get('/leaderboard', [AdminMonitorController::class, 'leaderboard'])
+            ->name('monitor.leaderboard'); 
+        // -------------------------
+
+        // User Management
         Route::patch('/users/{user}/toggle-status', [DashboardController::class, 'userToggle'])->name('users.toggle');
         Route::delete('/users/{user}', [DashboardController::class, 'userDestroy'])->name('users.destroy');
     });
@@ -76,12 +96,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/produk', [ProductController::class, 'store'])->name('product.store');
             Route::get('/produk/{product}/edit', [ProductController::class, 'edit'])->name('product.edit');
             // Gunakan POST untuk update jika ada upload file (Inertia limitation workaround)
-            Route::post('/produk/{product}', [ProductController::class, 'update'])->name('product.update');
+            Route::put('/produk/{product}', [ProductController::class, 'update'])->name('product.update');
             Route::delete('/produk/{product}', [ProductController::class, 'destroy'])->name('product.destroy');
 
             // Commission Validation (Untuk Approve/Reject)
             Route::get('/commissions', [CommissionController::class, 'index'])->name('commission.index');
             Route::patch('/commissions/{commission}', [CommissionController::class, 'update'])->name('commission.update');
+
+            // Content Video Management
+            Route::get('/content-videos', [ContentVideoController::class, 'index'])->name('content.index');
+            Route::post('/content-videos', [ContentVideoController::class, 'store'])->name('content.store');
+            Route::delete('/content-videos/{contentVideo}', [ContentVideoController::class, 'destroy'])->name('content.destroy');
+
+            // Affiliate Management
+            Route::prefix('affiliate')->name('affiliate.')->group(function () {
+                Route::get('/', [AffiliateController::class, 'index'])->name('index');
+                Route::get('/leaderboard', [AffiliateController::class, 'leaderboard'])->name('leaderboard');
+                Route::get('/favorites', [AffiliateController::class, 'favorites'])->name('favorites');
+                Route::post('/favorite-toggle', [AffiliateController::class, 'toggleFavorite'])->name('favorite.toggle');
+                Route::get('/{id}', [AffiliateController::class, 'show'])->name('show');
+            });
         });
 
     // ====================================================
@@ -101,6 +135,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // Commission / Klaim
             Route::post('/claim-commission', [CommissionController::class, 'store'])->name('claim.store');
             Route::get('/riwayat-klaim', [CommissionController::class, 'history'])->name('claim.history');
+
+            // Content Library (Video Promosi)
+            Route::get('/content-library', [ContentVideoController::class, 'library'])->name('content.library');
         });
 
     // ====================================================
@@ -110,8 +147,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::get('/profile/bank', function () {
+        return Inertia::render('Profile/BankEdit');
+    })->name('profile.bank.edit');
+
     // Affiliate Tracking
     Route::get('/ref/{product_id}/{student_id}', [ProductController::class, 'trackClick'])->name('affiliate.track');
+
+    Route::get('/l/{product_slug}/{user_id}', [App\Http\Controllers\RedirectController::class, 'handle'])
+        ->name('affiliate.redirect');
+    // routes/web.php
+    Route::get('/track/{product}/{user}', [TrackingController::class, 'handle'])
+        ->name('affiliate.track');
 });
 
 require __DIR__ . '/auth.php';

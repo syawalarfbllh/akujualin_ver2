@@ -15,6 +15,8 @@ class Commission extends Model
         'product_id',
         'shopee_order_id',
         'amount',
+        'price_at_time',
+        'proof_image',
         'status',
         'note',
     ];

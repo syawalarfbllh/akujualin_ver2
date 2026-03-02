@@ -7,6 +7,9 @@ use App\Models\Commission;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\CommissionExport;
 
 class CommissionController extends Controller
 {
@@ -16,31 +19,63 @@ class CommissionController extends Controller
         $request->validate([
             'product_id' => 'required|exists:products,id',
             'shopee_order_id' => 'required|unique:commissions,shopee_order_id',
+            // Validasi gambar maksimal 2MB
+            'proof_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         $product = Product::findOrFail($request->product_id);
+
+        // --- LOGIKA UPLOAD GAMBAR ---
+        $proofPath = null;
+        if ($request->hasFile('proof_image')) {
+            // Gambar akan disimpan di folder: storage/app/public/proofs
+            $proofPath = $request->file('proof_image')->store('proofs', 'public');
+        }
 
         Commission::create([
             'user_id' => Auth::id(),
             'product_id' => $request->product_id,
             'shopee_order_id' => $request->shopee_order_id,
-            'amount' => $product->commission_amount, // Ambil nominal komisi saat ini
+            'amount' => $product->commission_amount,
+            'price_at_time' => $product->price,
             'status' => 'pending',
+            'proof_image' => $proofPath, // <-- Simpan path gambar ke database
+            'created_at'    => now(),
         ]);
 
-        return back()->with('success', 'Klaim komisi berhasil dikirim!');
+        return back()->with('success', 'Klaim komisi beserta bukti berhasil dikirim!');
     }
 
     // --- FITUR STAFF UMKM ---
-    public function index()
+    public function index(Request $request)
     {
-        // Mengambil semua klaim yang masuk, lengkap dengan data mahasiswa dan produknya
-        $commissions = Commission::with(['user', 'product'])
-            ->latest()
-            ->get();
+        // Gunakan collect agar lebih mudah memanipulasi data input
+        $filters = collect($request->only(['date_start', 'date_end']))
+            ->filter() // Menghapus input yang nilainya null atau string kosong
+            ->toArray();
+
+        $startDate = $filters['date_start'] ?? null;
+        $endDate = $filters['date_end'] ?? null;
+
+        $query = Commission::with(['user', 'product']);
+
+        // Filter Tanggal
+        $query->when($startDate, function ($q) use ($startDate) {
+            return $q->whereDate('created_at', '>=', $startDate);
+        });
+
+        $query->when($endDate, function ($q) use ($endDate) {
+            return $q->whereDate('created_at', '<=', $endDate);
+        });
+
+        $commissions = $query->latest()->get();
 
         return Inertia::render('Staff/Commission/Index', [
-            'commissions' => $commissions
+            'commissions' => $commissions,
+            'filters' => [
+                'date_start' => $startDate,
+                'date_end' => $endDate,
+            ]
         ]);
     }
 
@@ -99,5 +134,15 @@ class CommissionController extends Controller
         return Inertia::render('Mahasiswa/Katalog', [
             'products' => $products
         ]);
+    }
+    public function exportExcel(Request $request)
+    {
+        $fileName = 'laporan-komisi-' . now()->format('Y-m-d') . '.xlsx';
+
+        // Kirim filter tanggal ke class Export
+        return Excel::download(
+            new CommissionExport($request->date_start, $request->date_end),
+            $fileName
+        );
     }
 }

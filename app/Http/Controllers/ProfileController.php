@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,15 +30,39 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // 1. Ambil semua data dari request
+        $data = $request->all();
+
+        // 2. Logika Khusus Upload Avatar (jika ada file)
+        if ($request->hasFile('avatar')) {
+            // Hapus foto lama jika bukan default dan filenya ada
+            if ($user->avatar && file_exists(public_path($user->avatar))) {
+                unlink(public_path($user->avatar));
+            }
+
+            $file = $request->file('avatar');
+            $fileName = time() . '_' . $user->id . '.' . $file->getClientOriginalExtension();
+            // Simpan ke public/uploads/avatars
+            $file->move(public_path('uploads/avatars'), $fileName);
+            $data['avatar'] = '/uploads/avatars/' . $fileName;
+        } else {
+            // Jika tidak ada upload baru, jangan timpa kolom avatar dengan null
+            unset($data['avatar']);
         }
 
-        $request->user()->save();
+        // 3. Masukkan data ke model (fillable akan menyaring field yang diizinkan)
+        $user->fill($data);
 
-        return Redirect::route('profile.edit');
+        // 4. Cek jika email berubah (fitur bawaan Laravel Breeze)
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
+
+        return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
     /**
@@ -60,4 +85,20 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+
+    public function marketplace()
+{
+    // Mengambil user dengan role mahasiswa yang sudah mengisi data profile
+    $affiliates = User::where('role', 'mahasiswa')
+        ->select([
+            'id', 'name', 'avatar', 'bio', 'whatsapp', 
+            'instagram_username', 'ig_followers', 
+            'tiktok_followers', 'bank_name'
+        ])
+        ->get();
+
+    return Inertia::render('Staff/Affiliate/Marketplace', [
+        'affiliates' => $affiliates
+    ]);
+}
 }

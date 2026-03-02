@@ -12,24 +12,44 @@ import {
     Card,
     SimpleGrid,
     Box,
+    ScrollArea,
+    Modal,
+    Image,
+    ActionIcon,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { DateInput } from "@mantine/dates";
+import { IconPhoto } from "@tabler/icons-react";
 import { useState } from "react";
 import dayjs from "dayjs";
 
 export default function History({ auth, commissions, summary, filters }) {
     const [startDate, setStartDate] = useState(
-        filters.start ? new Date(filters.start) : null,
+        filters.start_date ? new Date(filters.start_date) : null,
     );
     const [endDate, setEndDate] = useState(
-        filters.end ? new Date(filters.end) : null,
+        filters.end_date ? new Date(filters.end_date) : null,
     );
+
+    // State untuk Modal Bukti Foto
+    const [opened, { open, close }] = useDisclosure(false);
+    const [selectedProof, setSelectedProof] = useState(null);
+
+    // Fungsi untuk menghitung total pendapatan secara dinamis di frontend
+    const calculateFilteredTotal = () => {
+        return commissions.reduce((acc, curr) => {
+            // Hanya menjumlahkan yang statusnya 'approved'
+            if (curr.status === "approved") {
+                return acc + parseFloat(curr.amount);
+            }
+            return acc;
+        }, 0);
+    };
 
     const handleFilter = () => {
         router.get(
-            route("mahasiswa.history"),
+            route("mahasiswa.claim.history"), // Sesuaikan dengan nama route di web.php Anda
             {
-                // Sesuaikan dengan nama route history-mu
                 start_date: startDate
                     ? dayjs(startDate).format("YYYY-MM-DD")
                     : "",
@@ -42,7 +62,13 @@ export default function History({ auth, commissions, summary, filters }) {
     const resetFilter = () => {
         setStartDate(null);
         setEndDate(null);
-        router.get(route("mahasiswa.history"));
+        router.get(route("mahasiswa.claim.history"));
+    };
+
+    // Handler untuk membuka gambar
+    const handleViewProof = (imagePath) => {
+        setSelectedProof(imagePath);
+        open();
     };
 
     return (
@@ -98,85 +124,149 @@ export default function History({ auth, commissions, summary, filters }) {
                     <Card withBorder radius="md" bg="teal.0">
                         <Stack gap={0}>
                             <Text size="xs" c="teal.9" fw={700} tt="uppercase">
-                                Total Pendapatan Terfilter
+                                Total Pendapatan Disetujui
                             </Text>
                             <Title order={2} c="teal.9">
                                 Rp{" "}
-                                {(summary?.total_income || 0).toLocaleString(
+                                {calculateFilteredTotal().toLocaleString(
                                     "id-ID",
                                 )}
                             </Title>
                             <Text size="xs" c="teal.7">
-                                Dari {summary?.total_claims || 0} aktivitas
-                                klaim
+                                Dari {commissions.length} aktivitas klaim yang
+                                tampil
                             </Text>
                         </Stack>
                     </Card>
                 </SimpleGrid>
 
-                {/* Tabel Riwayat */}
-                <Paper withBorder radius="md">
-                    <Table verticalSpacing="sm" highlightOnHover striped>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Tanggal</Table.Th>
-                                <Table.Th>Produk</Table.Th>
-                                <Table.Th>ID Pesanan</Table.Th>
-                                <Table.Th>Nominal</Table.Th>
-                                <Table.Th>Status</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                            {commissions.length > 0 ? (
-                                commissions.map((item) => (
-                                    <Table.Tr key={item.id}>
-                                        <Table.Td>
-                                            {dayjs(item.created_at).format(
-                                                "DD MMM YYYY",
-                                            )}
-                                        </Table.Td>
-                                        <Table.Td fw={500}>
-                                            {item.product?.name ||
-                                                "Produk Dihapus"}
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Text size="xs">
-                                                {item.shopee_order_id}
-                                            </Text>
-                                        </Table.Td>
-                                        <Table.Td fw={700}>
-                                            Rp{" "}
-                                            {item.amount.toLocaleString(
-                                                "id-ID",
-                                            )}
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Badge
-                                                color={
-                                                    item.status === "approved"
-                                                        ? "green"
-                                                        : item.status ===
-                                                            "pending"
-                                                          ? "orange"
-                                                          : "red"
-                                                }
-                                                variant="light"
-                                            >
-                                                {item.status}
-                                            </Badge>
+                {/* Tabel Riwayat dengan ScrollArea untuk Responsivitas HP */}
+                <Paper withBorder radius="md" style={{ overflow: "hidden" }}>
+                    <ScrollArea>
+                        <Table
+                            verticalSpacing="sm"
+                            highlightOnHover
+                            striped
+                            miw={700}
+                        >
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th>Tanggal</Table.Th>
+                                    <Table.Th>Produk</Table.Th>
+                                    <Table.Th>ID Pesanan</Table.Th>
+                                    <Table.Th>Nominal</Table.Th>
+                                    <Table.Th>Bukti</Table.Th>{" "}
+                                    {/* Kolom Baru */}
+                                    <Table.Th>Status</Table.Th>
+                                </Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {commissions.length > 0 ? (
+                                    commissions.map((item) => (
+                                        <Table.Tr key={item.id}>
+                                            <Table.Td>
+                                                {dayjs(item.created_at).format(
+                                                    "DD MMM YYYY",
+                                                )}
+                                            </Table.Td>
+                                            <Table.Td fw={500}>
+                                                {item.product?.name ||
+                                                    "Produk Dihapus"}
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Text size="xs">
+                                                    {item.shopee_order_id}
+                                                </Text>
+                                            </Table.Td>
+                                            <Table.Td fw={700}>
+                                                Rp{" "}
+                                                {parseFloat(
+                                                    item.amount,
+                                                ).toLocaleString("id-ID")}
+                                            </Table.Td>
+                                            <Table.Td>
+                                                {/* Tombol Lihat Bukti */}
+                                                {item.proof_image ? (
+                                                    <Badge
+                                                        variant="light"
+                                                        color="blue"
+                                                        leftSection={
+                                                            <IconPhoto
+                                                                size={12}
+                                                            />
+                                                        }
+                                                        style={{
+                                                            cursor: "pointer",
+                                                        }}
+                                                        onClick={() =>
+                                                            handleViewProof(
+                                                                item.proof_image,
+                                                            )
+                                                        }
+                                                    >
+                                                        Lihat
+                                                    </Badge>
+                                                ) : (
+                                                    <Text size="xs" c="dimmed">
+                                                        -
+                                                    </Text>
+                                                )}
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Badge
+                                                    color={
+                                                        item.status ===
+                                                        "approved"
+                                                            ? "green"
+                                                            : item.status ===
+                                                                "pending"
+                                                              ? "orange"
+                                                              : "red"
+                                                    }
+                                                    variant="light"
+                                                >
+                                                    {item.status}
+                                                </Badge>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))
+                                ) : (
+                                    <Table.Tr>
+                                        <Table.Td
+                                            colSpan={6}
+                                            ta="center"
+                                            py="xl"
+                                        >
+                                            Tidak ada data klaim untuk periode
+                                            ini.
                                         </Table.Td>
                                     </Table.Tr>
-                                ))
-                            ) : (
-                                <Table.Tr>
-                                    <Table.Td colSpan={5} ta="center" py="xl">
-                                        Tidak ada data klaim untuk periode ini.
-                                    </Table.Td>
-                                </Table.Tr>
-                            )}
-                        </Table.Tbody>
-                    </Table>
+                                )}
+                            </Table.Tbody>
+                        </Table>
+                    </ScrollArea>
                 </Paper>
+
+                {/* Modal untuk Menampilkan Bukti Foto */}
+                <Modal
+                    opened={opened}
+                    onClose={close}
+                    title={<Text fw={700}>Bukti Transaksi</Text>}
+                    centered
+                >
+                    {selectedProof ? (
+                        <Image
+                            radius="md"
+                            src={`/storage/${selectedProof}`}
+                            alt="Bukti Klaim"
+                            fallbackSrc="https://placehold.co/600x400?text=Gambar+Tidak+Ditemukan"
+                        />
+                    ) : (
+                        <Text c="dimmed" ta="center">
+                            Tidak ada gambar yang dipilih.
+                        </Text>
+                    )}
+                </Modal>
             </Stack>
         </AuthenticatedLayout>
     );
